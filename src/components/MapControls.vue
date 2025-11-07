@@ -133,27 +133,27 @@ function onLegendClick(i) {
   const text = String(props.legendBins[i]?.range || '')
   const nums = text.match(/[+-]?\d+(\.\d+)?/g)?.map(Number) || []
 
-  // First bin: "≤ b0"  -> inclusive upper
+  // First bin label like "≤ b0" -> filter v < b0
   if (/≤/.test(text) && nums.length === 1) {
-    emit('range-change', [Number.NEGATIVE_INFINITY, nums[0]]) // parent will use <=
+    emit('range-change', ['first', nums[0]])
     return
   }
 
-  // Last bin: "> bN"    -> only lower bound
+  // Last bin label like "> bN"   -> filter v >= bN
   if (/>/.test(text) && nums.length === 1) {
     emit('range-change', ['last', nums[0]])
     return
   }
 
-  // Middle bin: "a–b"   -> [a, b) (upper-exclusive to match step())
+  // Middle bin label "a–b"       -> filter a <= v < b
   if (nums.length === 2) {
     emit('range-change', [nums[0], nums[1], 'exclusive'])
     return
   }
 
-  // Fallback: clear
   emit('range-change', null)
 }
+
 
 
 function intersectsSelected(i) {

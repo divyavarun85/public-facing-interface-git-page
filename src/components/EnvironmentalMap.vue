@@ -116,19 +116,30 @@ const currentRange = ref(null) // [min,max] or null
 
 const layerFilter = computed(() => {
     const r = currentRange.value
+    const field = active.value.valueField
     if (!r) return true
 
-    // last bin: ['last', min]
-    if (r[0] === 'last') {
-        return ['>=', ['get', active.value.valueField], r[1]]
+    if (r[0] === 'first') {
+        const max = r[1]
+        return ['<', ['get', field], max]
     }
 
-    const [min, max, exclusiveUpper] = r
+    if (r[0] === 'last') {
+        const min = r[1]
+        return ['>=', ['get', field], min]
+    }
+
+    const [min, max, mode] = r
+    if (mode === 'exclusive') {
+        return ['all',
+            ['>=', ['get', field], min],
+            ['<', ['get', field], max]
+        ]
+    }
+    // fallback (inclusive upper if you ever use it)
     return ['all',
-        ['>=', ['get', active.value.valueField], min],
-        exclusiveUpper
-            ? ['<', ['get', active.value.valueField], max]  // upper-exclusive
-            : ['<=', ['get', active.value.valueField], max] // upper-inclusive for the first bin
+        ['>=', ['get', field], min],
+        ['<=', ['get', field], max]
     ]
 })
 
