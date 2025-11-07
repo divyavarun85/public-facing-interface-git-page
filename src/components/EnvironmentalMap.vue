@@ -5,9 +5,10 @@
             @range-change="onRangeChange" @toggle-overlay="overlayOn = $event" />
         <div class="map-wrapper">
 
-            <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :valueField="active.valueField"
-                :breaks="active.breaks" :colors="active.colors" :center="center" :zoom="zoom" :filter="layerFilter"
-                outlineUrl="/us-states.geojson" :zoomOnClick="true" :hoverHighlight="true" />
+            <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :mapStyle="mapStyle"
+                :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="center"
+                :zoom="zoom" :filter="layerFilter" outlineUrl="/us-states.geojson" :zoomOnClick="true"
+                :hoverHighlight="true" />
 
         </div>
     </div>
@@ -17,10 +18,12 @@
 import { ref, computed, onMounted } from 'vue'
 import MapControls from './MapControls.vue'
 import MapHexLayer from './MapHexLayer.vue'
+import { MAP_STYLE } from '../config/mapStyle'
 
 const props = defineProps({
     data: { type: [String, Object], required: true },
     style: [String, Object],
+    mapStyle: { type: [String, Object], default: MAP_STYLE },
     center: { type: Array, default: () => [-98.6, 39.8] },
     zoom: { type: Number, default: 3.4 },
     initialFactorId: { type: String, default: 'pm25' }

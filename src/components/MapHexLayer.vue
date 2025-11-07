@@ -8,21 +8,7 @@ import maplibregl from 'maplibre-gl'
 
 const props = defineProps({
   data: { type: [String, Object], required: true },
-
-  mapStyle: {
-    type: [String, Object],
-    default: () => ({
-      version: 8,
-      sources: {
-        osm: {
-          type: 'raster',
-          tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-          tileSize: 256
-        }
-      },
-      layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
-    })
-  },
+  mapStyle: { type: [String, Object], required: true },
 
   valueField: { type: String, default: 'E_PM' },
   breaks: { type: Array, default: () => [5, 7, 9, 11] },
@@ -45,6 +31,16 @@ const colorExpr = (f, b, c) => {
   return e
 }
 
+function findFirstLabelLayerId() {
+  const style = map.getStyle()
+  if (!style?.layers) return undefined
+  // Heuristic: first symbol layer with a text-field
+  const sym = style.layers.find(
+    l => l.type === 'symbol' && l.layout && l.layout['text-field']
+  )
+  return sym?.id
+}
+
 
 function applyFilter() {
   if (map && map.getLayer(props.layerId)) {
@@ -54,14 +50,10 @@ function applyFilter() {
 
 function updatePaint() {
   if (!map || !map.getLayer(props.layerId)) return
-  // repaint with current factor / breaks / colors
-  map.setPaintProperty(
-    props.layerId,
-    'fill-color',
+  map.setPaintProperty(props.layerId, 'fill-color',
     colorExpr(props.valueField, props.breaks, props.colors)
   )
-  // apply filter if present
-  map.setFilter(props.layerId, props.filter ?? true)
+  applyFilter()
 }
 
 onMounted(() => {
@@ -75,29 +67,33 @@ onMounted(() => {
   map.on('error', e => console.error('MapLibre error:', e?.error || e))
 
   map.on('load', () => {
+    const beforeId = findFirstLabelLayerId() // 👈 place under labels
+
     map.addSource(props.sourceId, { type: 'geojson', data: props.data })
 
+    // Hex fill BELOW labels
     map.addLayer({
       id: props.layerId,
       type: 'fill',
       source: props.sourceId,
       paint: {
         'fill-color': colorExpr(props.valueField, props.breaks, props.colors),
-        'fill-opacity': 0.85
+        'fill-opacity': 0.75   // tweak for readability
       }
-    })
+    }, beforeId)
 
-    // optional semi-transparent overlay to show hex footprint
+    // Optional thin outline, also below labels
     map.addLayer({
-      id: 'hex-overlay',
+      id: 'hex-outline',
       type: 'line',
       source: props.sourceId,
-      paint: { 'line-color': '#000', 'line-opacity': 0.08, 'line-width': 0.6 }
-    })
+      paint: { 'line-color': '#000', 'line-opacity': 0.10, 'line-width': 0.6 }
+    }, beforeId)
 
-    applyFilter()           // ✅ apply after the layer exists
+    applyFilter()
     setTimeout(() => map.resize(), 0)
   })
+
 })
 
 watch(

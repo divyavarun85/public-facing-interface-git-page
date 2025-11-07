@@ -1,6 +1,6 @@
 // stories/EnvironmentalMap.stories.js  (root-level /stories)
 import EnvironmentalMap from '../src/components/EnvironmentalMap.vue';
-
+import { MAP_STYLE } from '../src/config/mapStyle';
 const OSM_RASTER_STYLE = {
   version: 8,
   sources: {
@@ -19,6 +19,7 @@ export default {
   component: EnvironmentalMap,
   parameters: { layout: 'fullscreen' },
   decorators: [() => ({ template: '<div style="height:90vh;min-height:600px"><story/></div>' })],
+  mapStyle: MAP_STYLE,  
 };
 
 export const Default = {
