@@ -48,14 +48,8 @@
           <span v-if="intersectsSelected(i)" class="legend-active-dot" title="Included in current filter" />
         </button>
 
-        <!-- Optional 'no data' entry -->
-        <div v-if="showNoData" class="legend-item legend-nodata" role="listitem" aria-label="No data">
-          <span class="legend-swatch" :style="{ backgroundColor: noDataColor }" />
-          <span class="legend-text">
-            <span class="legend-range">No data</span>
-            <span class="legend-sub">hex has no value</span>
-          </span>
-        </div>
+
+
       </div>
 
       <!-- Current filter chip -->
