@@ -17,6 +17,15 @@ const props = defineProps({
   zoom: { type: Number, default: 3.4 },
   sourceId: { type: String, default: 'src' },
   layerId: { type: String, default: 'fill' },
+  hoverHighlight: { type: Boolean, default: true },
+  zoomOnClick: { type: Boolean, default: true },
+  zoomOnClickTarget: { type: Number, default: 7.5 },
+  tooltipFields: { type: Array, default: () => [] },
+  tooltipFormatter: { type: Function, default: null },
+  popupOptions: { type: Object, default: () => ({}) },
+
+  statesUrl: { type: [String, Object], default: null },
+  showStateBorders: { type: Boolean, default: false },
 
   // optional filter expression from parent
   filter: { type: [Array, Boolean, null], default: null }
@@ -24,76 +33,256 @@ const props = defineProps({
 
 const mapEl = ref(null)
 let map
+let popup
+let hoveredId = null
+let lastClickCameFromLayer = false
 
-const colorExpr = (f, b, c) => {
-  const e = ['step', ['get', f], c[0]]
-  b.forEach((brk, i) => e.push(brk, c[i + 1]))
-  return e
+const defaultPopupOptions = {
+  closeButton: false,
+  closeOnClick: false,
+  offset: 12
+}
+
+const colorExpr = (field, breaks, colors) => {
+  const expr = ['step', ['get', field], colors[0]]
+  breaks.forEach((brk, idx) => expr.push(brk, colors[idx + 1] ?? colors.at(-1)))
+  return expr
 }
 
 function findFirstLabelLayerId() {
   const style = map.getStyle()
   if (!style?.layers) return undefined
-  // Heuristic: first symbol layer with a text-field
-  const sym = style.layers.find(
-    l => l.type === 'symbol' && l.layout && l.layout['text-field']
+  const symbolLayer = style.layers.find(layer =>
+    layer.type === 'symbol' &&
+    layer.layout &&
+    Boolean(layer.layout['text-field'])
   )
-  return sym?.id
+  return symbolLayer?.id
 }
 
+function hoverOpacityExpr() {
+  return props.hoverHighlight
+    ? ['case', ['boolean', ['feature-state', 'hover'], false], 0.85, 0.6]
+    : 0.6
+}
 
 function applyFilter() {
-  if (map && map.getLayer(props.layerId)) {
-    map.setFilter(props.layerId, props.filter ?? true)
-  }
+  if (!map?.getLayer(props.layerId)) return
+  map.setFilter(props.layerId, props.filter ?? true)
 }
 
 function updatePaint() {
-  if (!map || !map.getLayer(props.layerId)) return
+  if (!map?.getLayer(props.layerId)) return
   map.setPaintProperty(props.layerId, 'fill-color',
     colorExpr(props.valueField, props.breaks, props.colors)
   )
+  map.setPaintProperty(props.layerId, 'fill-opacity', hoverOpacityExpr())
   applyFilter()
+}
+
+function clearHoverState() {
+  if (!map || hoveredId == null) return
+  map.setFeatureState({ source: props.sourceId, id: hoveredId }, { hover: false })
+  hoveredId = null
+}
+
+function ensurePopup() {
+  if (!popup) {
+    popup = new maplibregl.Popup({ ...defaultPopupOptions, ...(props.popupOptions || {}) })
+  }
+  return popup
+}
+
+function getTooltipHtml(feature) {
+  if (!feature) return null
+  if (typeof props.tooltipFormatter === 'function') {
+    return props.tooltipFormatter(feature)
+  }
+  if (props.tooltipFields?.length) {
+    const segments = props.tooltipFields
+      .map(({ label, property, formatter }) => {
+        const raw = feature.properties?.[property]
+        const value = formatter ? formatter(raw, feature) : raw
+        if (value === undefined || value === null) return null
+        return `<div><strong>${label}:</strong> ${value}</div>`
+      })
+      .filter(Boolean)
+    return segments.length ? `<div class="map-tooltip">${segments.join('')}</div>` : null
+  }
+  const value = feature.properties?.[props.valueField]
+  if (value == null) return null
+  return `<div class="map-tooltip"><strong>${props.valueField}</strong>: ${value}</div>`
+}
+
+function handleMouseMove(e) {
+  if (!props.hoverHighlight || !map) return
+  const feature = e.features?.[0]
+  if (!feature || feature.id == null) return
+  if (hoveredId !== feature.id) {
+    clearHoverState()
+    hoveredId = feature.id
+    map.setFeatureState({ source: props.sourceId, id: hoveredId }, { hover: true })
+  }
+}
+
+function handleMouseLeave() {
+  if (!map) return
+  map.getCanvas().style.cursor = ''
+  clearHoverState()
+}
+
+function handleCursorEnter() {
+  if (!map) return
+  map.getCanvas().style.cursor = 'pointer'
+}
+
+function handleFeatureClick(e) {
+  if (!map) return
+  const feature = e.features?.[0]
+  if (!feature) return
+
+  if (props.zoomOnClick) {
+    const targetZoom = Math.max(props.zoomOnClickTarget, map.getZoom())
+    map.easeTo({ center: e.lngLat, zoom: targetZoom, duration: 650 })
+  }
+
+  const html = getTooltipHtml(feature)
+  if (html) {
+    ensurePopup()
+    popup.setLngLat(e.lngLat).setHTML(html).addTo(map)
+    lastClickCameFromLayer = true
+  } else if (popup) {
+    popup.remove()
+    lastClickCameFromLayer = false
+  }
+}
+
+function handleMapClick(e) {
+  if (!map || !popup) return
+  if (lastClickCameFromLayer) {
+    lastClickCameFromLayer = false
+    return
+  }
+  const features = map.queryRenderedFeatures(e.point, { layers: [props.layerId] })
+  if (!features.length) {
+    popup.remove()
+  }
+}
+
+function registerInteraction() {
+  if (!map) return
+  map.on('mouseenter', props.layerId, handleCursorEnter)
+  map.on('mouseleave', props.layerId, handleMouseLeave)
+  map.on('click', handleMapClick)
+  if (props.hoverHighlight) {
+    map.on('mousemove', props.layerId, handleMouseMove)
+  }
+  if (props.zoomOnClick || props.tooltipFields?.length || typeof props.tooltipFormatter === 'function') {
+    map.on('click', props.layerId, handleFeatureClick)
+  }
+}
+
+function unregisterInteraction() {
+  if (!map) return
+  map.off('mouseenter', props.layerId, handleCursorEnter)
+  map.off('mouseleave', props.layerId, handleMouseLeave)
+  map.off('click', handleMapClick)
+  map.off('mousemove', props.layerId, handleMouseMove)
+  map.off('click', props.layerId, handleFeatureClick)
 }
 
 onMounted(() => {
   map = new maplibregl.Map({
     container: mapEl.value,
-    style: props.mapStyle,         // 🔁 use mapStyle
+    style: props.mapStyle,
     center: props.center,
     zoom: props.zoom
   })
 
-  map.on('error', e => console.error('MapLibre error:', e?.error || e))
+  map.on('error', err => console.error('MapLibre error:', err?.error || err))
 
-  map.on('load', () => {
-    const beforeId = findFirstLabelLayerId() // 👈 place under labels
+  map.on('load', async () => {
+    const beforeId = findFirstLabelLayerId()
 
-    map.addSource(props.sourceId, { type: 'geojson', data: props.data })
+    map.addSource(props.sourceId, {
+      type: 'geojson',
+      data: props.data,
+      generateId: true
+    })
 
-    // Hex fill BELOW labels
     map.addLayer({
       id: props.layerId,
       type: 'fill',
       source: props.sourceId,
       paint: {
         'fill-color': colorExpr(props.valueField, props.breaks, props.colors),
-        'fill-opacity': 0.6   // tweak for readability
+        'fill-opacity': hoverOpacityExpr()
       }
     }, beforeId)
 
-    // Optional thin outline, also below labels
     map.addLayer({
-      id: 'hex-outline',
+      id: `${props.layerId}-outline`,
       type: 'line',
       source: props.sourceId,
-      paint: { 'line-color': '#000', 'line-opacity': 0.10, 'line-width': 0.6 }
+      paint: {
+        'line-color': '#000',
+        'line-width': 0.6,
+        'line-opacity': 0.1
+      }
     }, beforeId)
 
+    if (props.showStateBorders && props.statesUrl) {
+      try {
+        const statesData = typeof props.statesUrl === 'string'
+          ? await (await fetch(props.statesUrl, { cache: 'no-store' })).json()
+          : props.statesUrl
+
+        map.addSource('states-outline', { type: 'geojson', data: statesData })
+
+        map.addLayer({
+          id: 'states-casing',
+          type: 'line',
+          source: 'states-outline',
+          paint: {
+            'line-color': '#ffffff',
+            'line-width': [
+              'interpolate', ['linear'], ['zoom'],
+              3, 0.8,
+              6, 1.2,
+              8, 1.8,
+              10, 2.2
+            ],
+            'line-opacity': 0.9
+          },
+          layout: { 'line-join': 'round', 'line-cap': 'round' }
+        }, beforeId)
+
+        map.addLayer({
+          id: 'states-line',
+          type: 'line',
+          source: 'states-outline',
+          paint: {
+            'line-color': '#2b2b2b',
+            'line-width': [
+              'interpolate', ['linear'], ['zoom'],
+              3, 0.2,
+              6, 0.4,
+              8, 0.6,
+              10, 0.8
+            ],
+            'line-opacity': 0.55
+          },
+          layout: { 'line-join': 'round', 'line-cap': 'round' }
+        }, beforeId)
+      } catch (err) {
+        console.warn('Failed loading states overlay:', err)
+      }
+    }
+
     applyFilter()
+    registerInteraction()
     setTimeout(() => map.resize(), 0)
   })
-
 })
 
 watch(
@@ -101,5 +290,48 @@ watch(
   () => updatePaint()
 )
 
-onBeforeUnmount(() => map?.remove())
+watch(
+  () => props.hoverHighlight,
+  () => {
+    if (!map || !map.isStyleLoaded()) return
+    clearHoverState()
+    updatePaint()
+    unregisterInteraction()
+    registerInteraction()
+  }
+)
+
+watch(
+  () => [props.zoomOnClick, typeof props.tooltipFormatter, JSON.stringify(props.tooltipFields ?? [])],
+  () => {
+    if (!map || !map.isStyleLoaded()) return
+    unregisterInteraction()
+    registerInteraction()
+  }
+)
+
+watch(
+  () => props.data,
+  newData => {
+    if (!map || !map.isStyleLoaded()) return
+    const source = map.getSource(props.sourceId)
+    if (source && newData) {
+      clearHoverState()
+      if (typeof newData === 'string') {
+        fetch(newData, { cache: 'no-store' })
+          .then(res => res.json())
+          .then(json => source.setData(json))
+          .catch(err => console.error('Failed to load GeoJSON data', err))
+      } else {
+        source.setData(newData)
+      }
+    }
+  }
+)
+
+onBeforeUnmount(() => {
+  unregisterInteraction()
+  popup?.remove()
+  map?.remove()
+})
 </script>

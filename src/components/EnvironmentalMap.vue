@@ -7,8 +7,8 @@
 
             <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :mapStyle="mapStyle"
                 :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="center"
-                :zoom="zoom" :filter="layerFilter" outlineUrl="/us-states.geojson" :zoomOnClick="true"
-                :hoverHighlight="true" />
+                :zoom="zoom" :filter="layerFilter" :hoverHighlight="true" :zoomOnClick="true" :zoomOnClickTarget="8"
+                :tooltipFields="tooltipFields" />
 
         </div>
     </div>
@@ -154,6 +154,54 @@ function onFactorChange(id) { selectedFactor.value = id; currentRange.value = nu
 function onRangeChange(range) { currentRange.value = range }
 
 let overlayOn = ref(false) // kept if you add an overlay toggle
+
+function formatNumber(value, opts = {}) {
+    if (value === null || value === undefined || Number.isNaN(value)) return 'N/A'
+    const formatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1, ...opts })
+    return formatter.format(value)
+}
+
+const tooltipFields = computed(() => {
+    const metric = active.value
+    if (!metric) return []
+
+    const formatValue = (value, digits = 2, unit = '') => {
+        if (value === null || value === undefined || Number.isNaN(value)) return 'N/A'
+        const formatted = typeof value === 'number'
+            ? formatNumber(value, { maximumFractionDigits: digits })
+            : value
+        return `${formatted}${unit ? ` ${unit}` : ''}`
+    }
+
+    const locationFormatter = (_, feature) => {
+        const props = feature?.properties || {}
+        const name = props.CITY || props.city || props.PLACE || props.place || props.NAME || props.name
+        const state = props.STATE || props.state || props.STATE_ABBR
+        const location = [name, state].filter(Boolean).join(', ')
+        if (location) return location
+        const hex = props.hex_id ?? props.fid ?? null
+        return hex !== null ? `Hex ${hex}` : 'Location unavailable'
+    }
+
+    const makeField = (label, property, digits = 2, unit = '') => ({
+        label,
+        property,
+        formatter: value => formatValue(value, digits, unit)
+    })
+
+    return [
+        {
+            label: 'Location',
+            property: metric.valueField,
+            formatter: locationFormatter
+        },
+        makeField(metric.name, metric.valueField, 2, metric.unit),
+        makeField('Population', 'E_TOTPOP', 0),
+        makeField('PM2.5 Percentile', 'EPL_PM', 2),
+        makeField('Asthma Rate', 'EP_ASTHMA', 1, '%'),
+        makeField('Social Vulnerability', 'SPL_SVM', 2)
+    ]
+})
 </script>
 
 <style scoped>
