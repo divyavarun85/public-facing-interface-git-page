@@ -247,10 +247,10 @@ onMounted(() => {
             'line-color': '#ffffff',
             'line-width': [
               'interpolate', ['linear'], ['zoom'],
-              3, 0.8,
-              6, 1.2,
-              8, 1.8,
-              10, 2.2
+              3, 1.2,
+              6, 1.6,
+              8, 2.4,
+              10, 3
             ],
             'line-opacity': 0.9
           },
@@ -262,15 +262,15 @@ onMounted(() => {
           type: 'line',
           source: 'states-outline',
           paint: {
-            'line-color': '#2b2b2b',
+            'line-color': '#170202',
             'line-width': [
               'interpolate', ['linear'], ['zoom'],
-              3, 0.2,
-              6, 0.4,
-              8, 0.6,
-              10, 0.8
+              3, 0.35,
+              6, 0.55,
+              8, 0.8,
+              10, 1.1
             ],
-            'line-opacity': 0.55
+            'line-opacity': 0.85
           },
           layout: { 'line-join': 'round', 'line-cap': 'round' }
         }, beforeId)
