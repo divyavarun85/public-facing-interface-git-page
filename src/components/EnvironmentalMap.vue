@@ -66,26 +66,30 @@ onMounted(async () => {
 const catalog = [
     {
         id: 'pm25', name: 'Air Quality (PM2.5)', unit: 'μg/m³', key: 'E_PM',
-        palette: ['#2c7bb6', '#abd9e9', '#ffffbf', '#fdae61', '#d7191c']
-    },
-    {
-        id: 'asthma', name: 'Asthma Rates', unit: '%', key: 'EP_ASTHMA',
-        palette: ['#edf8fb', '#b2e2e2', '#66c2a4', '#2ca25f', '#006d2c']
-    },
-    {
-        id: 'pm25pct', name: 'PM2.5 Percentile', unit: '0–1', key: 'EPL_PM',
+        // YlGnBu (5)
         palette: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494']
     },
     {
+        id: 'asthma', name: 'Asthma Rates', unit: '%', key: 'EP_ASTHMA',
+        // Greens (5)
+        palette: ['#f7fcf5', '#c7e9c0', '#74c476', '#238b45', '#00441b']
+    },
+    {
+        id: 'pm25pct', name: 'PM2.5 Percentile', unit: '0–1', key: 'EPL_PM',
+        // Blues (5)
+        palette: ['#f7fbff', '#c6dbef', '#6baed6', '#2171b5', '#084594']
+    },
+    {
         id: 'svm', name: 'Social Vulnerability', unit: 'index', key: 'SPL_SVM',
-        palette: ['#f7fbff', '#c6dbef', '#6baed6', '#2171b5', '#08306b']
+        // Diverging, softer than dark red/blue – RdYlBu (5)
+        palette: ['#d73027', '#fdae61', '#ffffbf', '#74add1', '#4575b4']
     },
     {
         id: 'pop', name: 'Population (×1k)', unit: 'k', key: 'E_TOTPOP',
-        palette: ['#fff7ec', '#fee8c8', '#fdbb84', '#e34a33', '#b30000']
+        // YlOrRd (5)
+        palette: ['#ffffcc', '#ffeda0', '#feb24c', '#fd8d3c', '#e31a1c']
     },
 ]
-
 // factors shown = only those whose key exists & has stats
 const factors = computed(() =>
     catalog.filter(c => stats.value[c.key]).map(c => {

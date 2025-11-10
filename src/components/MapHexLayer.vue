@@ -78,7 +78,7 @@ onMounted(() => {
       source: props.sourceId,
       paint: {
         'fill-color': colorExpr(props.valueField, props.breaks, props.colors),
-        'fill-opacity': 0.75   // tweak for readability
+        'fill-opacity': 0.6   // tweak for readability
       }
     }, beforeId)
 
