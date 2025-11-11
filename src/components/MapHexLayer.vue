@@ -48,28 +48,16 @@ const defaultPopupOptions = {
   offset: 12
 }
 
-const normalizeIds = (ids = []) => {
+const normalizeToStrings = (ids = []) => {
   if (!Array.isArray(ids)) return []
   return ids
     .map(value => {
       const num = Number(value)
-      if (Number.isFinite(num)) return num
+      if (Number.isFinite(num)) return String(num)
       const str = String(value ?? '').trim()
-      return str ? str : null
+      return str || null
     })
-    .filter(value => value !== null)
-}
-
-const selectionFilter = ids => {
-  const normalized = normalizeIds(ids)
-  if (!normalized.length) {
-    return ['==', ['get', 'hex_id'], '___none']
-  }
-  return ['match', ['coalesce', ['get', 'hex_id'], ['get', 'hex_id_str'], ['to-string', ['get', 'hex_id']]],
-    ['literal', normalized.map(val => (typeof val === 'number' ? val : String(val)))],
-    true,
-    false
-  ]
+    .filter(Boolean)
 }
 
 const colorExpr = (field, breaks, colors) => {
@@ -217,9 +205,15 @@ function handleCanvasMouseLeave() {
 }
 
 function updateSelectionLayer() {
-  if (!map || !map.isStyleLoaded()) return
-  if (!map.getLayer(selectionLayerId)) return
-  map.setFilter(selectionLayerId, selectionFilter(props.selectedHexIds))
+  if (!map || !map.isStyleLoaded() || !map.getLayer(selectionLayerId)) return
+  const normalized = normalizeToStrings(props.selectedHexIds)
+  if (!normalized.length) {
+    map.setFilter(selectionLayerId, ['==', ['to-string', ['get', 'hex_id']], '__none__'])
+    return
+  }
+  map.setFilter(selectionLayerId,
+    ['in', ['to-string', ['get', 'hex_id']], ['literal', normalized]]
+  )
   map.setPaintProperty(selectionLayerId, 'line-color', props.selectedHexColor)
   map.setPaintProperty(selectionLayerId, 'line-width',
     Number.isFinite(props.selectedHexWidth) ? props.selectedHexWidth : 3
@@ -342,7 +336,7 @@ onMounted(() => {
       id: selectionLayerId,
       type: 'line',
       source: props.sourceId,
-      filter: selectionFilter(props.selectedHexIds),
+      filter: ['==', ['to-string', ['get', 'hex_id']], '__none__'],
       paint: {
         'line-color': props.selectedHexColor,
         'line-width': props.selectedHexWidth,
