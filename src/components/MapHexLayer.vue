@@ -36,6 +36,7 @@ let map
 let popup
 let hoveredId = null
 let lastClickCameFromLayer = false
+let canvasMouseLeaveHandlerRegistered = false
 
 const defaultPopupOptions = {
   closeButton: false,
@@ -91,6 +92,12 @@ function ensurePopup() {
     popup = new maplibregl.Popup({ ...defaultPopupOptions, ...(props.popupOptions || {}) })
   }
   return popup
+}
+
+function closePopup() {
+  if (!popup) return
+  popup.remove()
+  lastClickCameFromLayer = false
 }
 
 function getTooltipHtml(feature) {
@@ -165,8 +172,20 @@ function handleMapClick(e) {
   }
   const features = map.queryRenderedFeatures(e.point, { layers: [props.layerId] })
   if (!features.length) {
-    popup.remove()
+    closePopup()
   }
+}
+
+function handleMapMouseDown(e) {
+  if (!map || !popup) return
+  if (lastClickCameFromLayer) return
+  const features = map.queryRenderedFeatures(e.point, { layers: [props.layerId] })
+  if (features.length) return
+  closePopup()
+}
+
+function handleCanvasMouseLeave() {
+  closePopup()
 }
 
 function registerInteraction() {
@@ -174,6 +193,7 @@ function registerInteraction() {
   map.on('mouseenter', props.layerId, handleCursorEnter)
   map.on('mouseleave', props.layerId, handleMouseLeave)
   map.on('click', handleMapClick)
+  map.on('mousedown', handleMapMouseDown)
   if (props.hoverHighlight) {
     map.on('mousemove', props.layerId, handleMouseMove)
   }
@@ -187,6 +207,7 @@ function unregisterInteraction() {
   map.off('mouseenter', props.layerId, handleCursorEnter)
   map.off('mouseleave', props.layerId, handleMouseLeave)
   map.off('click', handleMapClick)
+  map.off('mousedown', handleMapMouseDown)
   map.off('mousemove', props.layerId, handleMouseMove)
   map.off('click', props.layerId, handleFeatureClick)
 }
@@ -281,6 +302,10 @@ onMounted(() => {
 
     applyFilter()
     registerInteraction()
+    if (!canvasMouseLeaveHandlerRegistered && mapEl.value) {
+      mapEl.value.addEventListener('mouseleave', handleCanvasMouseLeave)
+      canvasMouseLeaveHandlerRegistered = true
+    }
 
     const boldLayers = ['State labels']
     const placeLayers = ['City labels', 'Capital city labels']
@@ -367,7 +392,11 @@ watch(
 
 onBeforeUnmount(() => {
   unregisterInteraction()
-  popup?.remove()
+  if (canvasMouseLeaveHandlerRegistered && mapEl.value) {
+    mapEl.value.removeEventListener('mouseleave', handleCanvasMouseLeave)
+    canvasMouseLeaveHandlerRegistered = false
+  }
+  closePopup()
   map?.remove()
 })
 </script>
