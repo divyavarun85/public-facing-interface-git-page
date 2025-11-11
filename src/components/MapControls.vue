@@ -22,8 +22,8 @@
     <section class="panel card">
       <label class="field-label" for="pin-input">Locate a ZIP / Postal Code</label>
       <div class="pin-input-row">
-        <div class="field-control">
-          <input id="pin-input" v-model="pinQuery" type="text" placeholder="Enter ZIP e.g. 37209" inputmode="numeric"
+        <div class="field-control ">
+          <input id="pin-input" v-model="pinQuery" type="text" placeholder=" e.g. 37209" inputmode="numeric"
             @keyup.enter="submitPin" />
         </div>
         <button class="btn-primary" @click="submitPin" :disabled="pinLoading || !pinQuery.trim()">
@@ -43,18 +43,8 @@
           <option v-for="f in factors" :key="f.id" :value="f.id">{{ f.name }}</option>
         </select>
       </div>
-    </section>
-
-    <section class="panel card">
-      <div class="panel-heading">
-        <div>
-          <h3 class="panel-heading-title">{{ selectedFactorData.name }}</h3>
-          <p v-if="unit" class="panel-heading-meta">Unit {{ unit }}</p>
-        </div>
-      </div>
 
       <div class="legend-ribbon" :style="{ background: ribbonGradient }" aria-hidden="true"></div>
-
       <div class="legend-scale" role="list">
         <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
           :aria-label="`Filter to ${bin.range} (${bin.label || 'bin'})`" @click="onLegendClick(i)">
@@ -73,19 +63,12 @@
           <button class="chip-x" @click="$emit('range-change', null)" aria-label="Clear filter">✕</button>
         </div>
       </transition>
-    </section>
-
-
-
-
-    <section class="panel card">
       <div class="panel-heading">
-        <div>
+        <div class="filter">
           <h3 class="panel-heading-title">Value Filter</h3>
-          <p class="panel-heading-meta">Domain {{ fmt(domain.min) }} – {{ fmt(domain.max) }}</p>
+          <p class="panel-heading-meta">Domain range: {{ fmt(domain.min) }} – {{ fmt(domain.max) }}</p>
         </div>
       </div>
-
       <div class="range-row">
         <label class="range-group">
           <span>Minimum</span>
@@ -97,7 +80,6 @@
           </div>
         </label>
       </div>
-
       <div class="range-row">
         <label class="range-group">
           <span>Maximum</span>
@@ -221,7 +203,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
   box-shadow: inset -1px 0 0 rgba(17, 24, 39, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 10px;
 }
 
 .panel-header {
@@ -298,7 +280,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 .panel-heading-meta {
   margin: 0;
   font-size: 12px;
-  color: #64748b;
+
 }
 
 .field-label {
@@ -598,7 +580,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 
 .pin-input-row {
   display: flex;
-  gap: 8px;
+  gap: 38px;
 }
 
 .pin-input-row input {
@@ -702,7 +684,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 .legend-ribbon {
   height: 10px;
   border-radius: 6px;
-  margin: 8px 0;
+
   border: 1px solid #e6e6e6
 }
 
@@ -789,7 +771,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 6px 0
+
 }
 
 .range-num {
@@ -816,5 +798,14 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 .domain-help {
   color: #666;
   font-size: 12px
+}
+
+.filter {
+  padding: 0 8px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: space-between;
 }
 </style>
