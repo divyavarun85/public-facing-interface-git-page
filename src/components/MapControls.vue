@@ -264,6 +264,11 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
   border-style: dashed;
 }
 
+.card-muted h3 {
+  margin-bottom: 2px;
+}
+
+
 .panel-heading {
   display: flex;
   justify-content: space-between;
@@ -801,7 +806,7 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 }
 
 .filter {
-  padding: 0 8px;
+  padding: 5px 8px 0 8px;
   width: 100%;
   display: flex;
   align-items: center;
