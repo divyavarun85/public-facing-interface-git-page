@@ -53,7 +53,7 @@
             <span class="legend-range">{{ bin.range }}</span>
             <span class="legend-sub">{{ bin.label }}</span>
           </span>
-          <span v-if="intersectsSelected(i)" class="legend-active-dot" title="Included in current filter" />
+
         </button>
       </div>
 
