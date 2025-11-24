@@ -37,11 +37,12 @@
     </section>
     <section class="panel card">
       <label class="field-label" for="factor-select">Environmental Factor</label>
-      <div class="field-control">
+      <div class="field-control select-wrapper">
         <select id="factor-select" :value="selectedFactor"
           @change="$emit('factor-change', ($event.target && $event.target.value) || selectedFactor)">
           <option v-for="f in factors" :key="f.id" :value="f.id">{{ f.name }}</option>
         </select>
+        <span class="select-arrow">▼</span>
       </div>
 
       <div class="legend-ribbon" :style="{ background: ribbonGradient }" aria-hidden="true"></div>
@@ -541,6 +542,34 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
   padding-left: 18px;
   color: #475569;
   font-size: 13px;
+}
+
+.select-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+}
+
+.select-wrapper select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 36px;
+  /* Make room for the arrow */
+}
+
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #64748b;
+  font-size: 12px;
+  transition: color 0.2s ease;
+}
+
+.select-wrapper:focus-within .select-arrow {
+  color: #2563eb;
 }
 
 #factor-select {
