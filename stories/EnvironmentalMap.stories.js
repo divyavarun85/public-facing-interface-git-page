@@ -24,9 +24,9 @@ export default {
 
 export const Default = {
   args: {
-     data: '/chel2022_wgs84_clipped.geojson',  // file in public/ - clipped to US boundary
+     data: '/chel2022_wgs84.geojson',  // file in public/ - original data in WGS84 (not clipped)
     factors: baseFactors,
-    initialFactorId: 'pm25',
+    initialFactorId: '',  // No default selection - user must choose a variable
     center: [-98.6, 39.8],
     zoom: 3.4,
     style: OSM_RASTER_STYLE,

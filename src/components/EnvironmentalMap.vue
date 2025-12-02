@@ -33,7 +33,8 @@
                     :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="mapCenter"
                     :zoom="mapZoom" :filter="layerFilter" :hoverHighlight="true" :zoomOnClick="true"
                     :zoomOnClickTarget="8" :statesUrl="statesGeoUrl" :showStateBorders="true"
-                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#111827'" :tooltipFields="tooltipFields" />
+                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#111827'" :tooltipFields="tooltipFields"
+                    :searchPinLocation="searchPinLocation" />
 
             </div>
         </div>
@@ -54,12 +55,12 @@ const props = defineProps({
     mapStyle: { type: [String, Object], default: MAP_STYLE },
     center: { type: Array, default: () => [-98.6, 39.8] },
     zoom: { type: Number, default: 3.4 },
-    initialFactorId: { type: String, default: 'pm25' }
+    initialFactorId: { type: String, default: '' }
 })
 
 const STATES_GEO_URL = 'https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json'
 const dataObj = ref(null)
-const selectedFactor = ref(props.initialFactorId)
+const selectedFactor = ref(props.initialFactorId || '')
 const numericKeys = ref([])
 const stats = ref({})  // { key: {min, max, q20,q40,q60,q80} }
 const mapCenter = ref(Array.isArray(props.center) ? [...props.center] : [-98.6, 39.8])
@@ -67,7 +68,8 @@ const mapZoom = ref(typeof props.zoom === 'number' ? props.zoom : 3.4)
 const selectedHexIds = ref([])
 const pinLoading = ref(false)
 const pinErrorMessage = ref('')
-const zipCache = new Map() // cache zip lookups
+const zipCache = new Map() // cache zip/address lookups
+const searchPinLocation = ref(null) // [lng, lat] for the searched location pin
 
 function isNumeric(v) { return typeof v === 'number' && Number.isFinite(v) }
 
@@ -118,14 +120,13 @@ async function initializeFromData(dataSource) {
     const availableFactorIds = new Set(
         catalog.filter(c => stats.value[c.key]).map(c => c.id)
     )
-    const previousSelection = selectedFactor.value
-    if (previousSelection && availableFactorIds.has(previousSelection)) {
-        selectedFactor.value = previousSelection
-    } else if (availableFactorIds.has('pm25')) {
-        selectedFactor.value = 'pm25'
+    // Only set a selection if explicitly provided via props, otherwise start with none selected
+    // This ensures no auto-selection happens
+    if (props.initialFactorId && props.initialFactorId.trim() !== '' && availableFactorIds.has(props.initialFactorId)) {
+        selectedFactor.value = props.initialFactorId
     } else {
-        const firstAvailable = availableFactorIds.values().next().value
-        if (firstAvailable) selectedFactor.value = firstAvailable
+        // Always reset to empty on data load to ensure clean state
+        selectedFactor.value = ''
     }
 }
 
@@ -153,23 +154,28 @@ watch(
 /** factor catalog (labels + mapping to CHEL keys) */
 const catalog = [
     {
-        id: 'pm25', name: 'Air Quality (PM2.5)', unit: 'μg/m³', key: 'E_PM',
-        palette: ['#a93b07', '#d76622', '#f18b49', '#f9b282', '#fdd8b4']
+        id: 'pm25', name: 'Air Quality', unit: '', key: 'E_PM',
+        // Reversed color scheme (muted for screen): Purple (Very Low PM2.5) → Red → Orange → Yellow → Green (Very High PM2.5)
+        // Lower PM2.5 values = darker colors (purple), Higher PM2.5 values = lighter colors (green)
+        // Colors are desaturated/darkened versions of EPA AQI colors for better screen visibility
+        palette: ['#7a3a82', '#cc4444', '#cc7044', '#cccc44', '#44cc44']
     },
     {
-        id: 'asthma', name: 'Asthma Rates', unit: '%', key: 'EP_ASTHMA',
-        palette: ['#e0f2f1', '#b2dfdb', '#80cbc4', '#4db6ac', '#00897b']
+        id: 'asthma', name: 'Asthma Rates', unit: '', key: 'EP_ASTHMA',
+        // Standard health data colors: Light blue (low) → Green → Yellow → Orange → Red (high)
+        palette: ['#e3f2fd', '#81d4fa', '#4fc3f7', '#ffb74d', '#ef5350']
     },
     {
-        id: 'pm25pct', name: 'PM2.5 Percentile', unit: '0–1', key: 'EPL_PM',
-        palette: ['#edf2ff', '#d6e4ff', '#adc8ff', '#7c9dec', '#4a6ed6']
+        id: 'pm25pct', name: 'Air Pollution Ranking', unit: '', key: 'EPL_PM',
+        // EPA AQI-style gradient: Light green → Yellow → Orange → Red → Dark red
+        palette: ['#c8e6c9', '#fff9c4', '#ffcc80', '#ff7043', '#c62828']
     },
     {
-        id: 'svm', name: 'Social Vulnerability', unit: 'index', key: 'SPL_SVM',
+        id: 'svm', name: 'Social Vulnerability', unit: '', key: 'SPL_SVM',
         palette: ['#f8d2d4', '#efa6b1', '#d4bde8', '#a9b5ef', '#7c94da']
     },
     {
-        id: 'pop', name: 'Population (×1k)', unit: 'k', key: 'E_TOTPOP',
+        id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
         palette: ['#f4f5f9', '#dce0ee', '#bec7e0', '#9aa7c8', '#6e7ba6']
     },
 ]
@@ -183,14 +189,28 @@ const factors = computed(() =>
 )
 
 const active = computed(() => {
-    const f = factors.value.find(x => x.id === selectedFactor.value) || factors.value[0]
+    // If no factor is selected, return neutral gray colors
+    if (!selectedFactor.value || !factors.value.length) {
+        return {
+            valueField: null,
+            breaks: [],
+            colors: ['#e5e7eb', '#e5e7eb'], // Neutral gray
+            unit: '',
+            name: 'No variable selected'
+        }
+    }
+    const f = factors.value.find(x => x.id === selectedFactor.value)
     return f ? { valueField: f.valueField, breaks: f.breaks, colors: f.colorScale, unit: f.unit, name: f.name } :
-        { valueField: 'E_PM', breaks: [5, 7, 9, 11], colors: ['#2c7bb6', '#abd9e9', '#ffffbf', '#fdae61', '#d7191c'] }
+        { valueField: null, breaks: [], colors: ['#e5e7eb', '#e5e7eb'], unit: '', name: 'No variable selected' }
 })
 
 /** legend bins for the sidebar */
 const legendBins = computed(() => {
     const { breaks, colors } = active.value
+    // If no factor is selected, return empty legend
+    if (!breaks || breaks.length === 0) {
+        return []
+    }
     const fmt = n => (Math.abs(n) % 1 === 0 ? n : +n.toFixed(1))
     const bins = []
     bins.push({ color: colors[0], range: `≤ ${fmt(breaks[0])}`, label: 'Very Low' })
@@ -277,8 +297,8 @@ const tooltipFields = computed(() => {
     // Build list of additional fields, excluding the currently selected metric to avoid duplication
     const additionalFields = [
         makeField('Population', 'E_TOTPOP', 0),
-        makeField('PM2.5 Percentile', 'EPL_PM', 2),
-        makeField('Asthma Rate', 'EP_ASTHMA', 1, '%'),
+        makeField('Air Pollution Ranking', 'EPL_PM', 2),
+        makeField('Asthma Rate', 'EP_ASTHMA', 1),
         makeField('Social Vulnerability', 'SPL_SVM', 2)
     ].filter(field => field.property !== metric.valueField)
 
@@ -303,14 +323,14 @@ watch(() => props.zoom, value => {
     mapZoom.value = value
 })
 
-async function handlePinSearch(zip) {
-    const query = (zip || '').trim()
+async function handlePinSearch(queryInput) {
+    const query = (queryInput || '').trim()
     pinLoading.value = true
     pinErrorMessage.value = ''
     selectedHexIds.value = []
 
     try {
-        if (!query) throw new Error('Please enter a valid ZIP code.')
+        if (!query) throw new Error('Please enter a ZIP code or address.')
         const features = dataObj.value?.features || []
         if (!features.length) throw new Error('Map data is still loading. Please try again in a moment.')
 
@@ -320,20 +340,48 @@ async function handlePinSearch(zip) {
         if (cached) {
             ({ lat, lng, hexIds } = cached)
         } else {
-            const response = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(query)}`)
-            if (!response.ok) throw new Error('ZIP code not found.')
-            const zipData = await response.json()
-            const place = zipData.places?.[0]
-            if (!place) throw new Error('ZIP code not found.')
+            // Check if query is numeric (ZIP code) or text (address)
+            const isZipCode = /^\d{5}(-\d{4})?$/.test(query)
 
-            lat = Number(place.latitude)
-            lng = Number(place.longitude)
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('ZIP returned invalid coordinates.')
+            if (isZipCode) {
+                // Use ZIP code API
+                const response = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(query)}`)
+                if (!response.ok) throw new Error('ZIP code not found.')
+                const zipData = await response.json()
+                const place = zipData.places?.[0]
+                if (!place) throw new Error('ZIP code not found.')
+
+                lat = Number(place.latitude)
+                lng = Number(place.longitude)
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('ZIP returned invalid coordinates.')
+            } else {
+                // Use address geocoding (Nominatim - OpenStreetMap)
+                // Enhanced for street addresses with better parameters
+                const geocodeUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=us&accept-language=en&addressdetails=1&extratags=1`
+                const response = await fetch(geocodeUrl, {
+                    headers: {
+                        'User-Agent': 'Environmental Map Application',
+                        'Referer': window.location.origin
+                    }
+                })
+
+                if (!response.ok) throw new Error('Address search failed. Please try again.')
+                const geoData = await response.json()
+
+                if (!geoData || geoData.length === 0) {
+                    throw new Error('Address not found. Please try: "123 Main St, City, State" or a ZIP code.')
+                }
+
+                const result = geoData[0]
+                lat = Number(result.lat)
+                lng = Number(result.lon)
+                if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('Address returned invalid coordinates.')
+            }
 
             const pt = turfPoint([lng, lat])
             const matches = features.filter(feature => booleanPointInPolygon(pt, feature))
 
-            if (!matches.length) throw new Error('ZIP code falls outside the data coverage area.')
+            if (!matches.length) throw new Error('Location falls outside the data coverage area.')
 
             hexIds = matches.map(feature => {
                 const rawHexId = feature.properties?.hex_id
@@ -349,13 +397,15 @@ async function handlePinSearch(zip) {
 
         selectedHexIds.value = [...new Set(hexIds)]
         mapCenter.value = [lng, lat]
+        searchPinLocation.value = [lng, lat] // Set pin location for the marker
         const targetZoom = mapZoom.value || props.zoom || 3.4
         mapZoom.value = targetZoom < 7.2 ? 7.2 : targetZoom
         pinErrorMessage.value = ''
     } catch (error) {
-        console.error('Pin search failed', error)
+        console.error('Location search failed', error)
         selectedHexIds.value = []
-        pinErrorMessage.value = error?.message || 'Could not locate that ZIP code.'
+        searchPinLocation.value = null // Clear pin on error
+        pinErrorMessage.value = error?.message || 'Could not locate that address or ZIP code.'
     } finally {
         pinLoading.value = false
     }

@@ -15,15 +15,15 @@
         <ul>
           <li>Use the dropdown to swap between indicators.</li>
           <li>Click legend bands to focus specific ranges.</li>
-          <li>Enter a ZIP code to zoom directly to that area.</li>
+          <li>Enter a ZIP code or address to zoom directly to that area.</li>
         </ul>
       </section>
     </transition>
     <section class="panel card">
-      <label class="field-label" for="pin-input">Locate a ZIP / Postal Code</label>
+      <label class="field-label" for="pin-input">Locate by ZIP Code or Address</label>
       <div class="pin-input-row">
         <div class="field-control ">
-          <input id="pin-input" v-model="pinQuery" type="text" placeholder=" e.g. 37209" inputmode="numeric"
+          <input id="pin-input" v-model="pinQuery" type="text" placeholder=" e.g. 123 Main St, Nashville, TN or 37209"
             @keyup.enter="submitPin" />
         </div>
         <button class="btn-primary" @click="submitPin" :disabled="pinLoading || !pinQuery.trim()">
@@ -36,17 +36,27 @@
       </transition>
     </section>
     <section class="panel card">
-      <label class="field-label" for="factor-select">Environmental Factor</label>
-      <div class="field-control select-wrapper">
-        <select id="factor-select" :value="selectedFactor"
-          @change="$emit('factor-change', ($event.target && $event.target.value) || selectedFactor)">
-          <option v-for="f in factors" :key="f.id" :value="f.id">{{ f.name }}</option>
-        </select>
-        <span class="select-arrow">▼</span>
+      <label class="field-label">Environmental Factor</label>
+      <div class="variable-list" role="list">
+        <button v-for="factor in factors" :key="factor.id" type="button" class="variable-item"
+          :class="{ 'variable-item--selected': factor.id === selectedFactor }"
+          @click="$emit('factor-change', factor.id)" :aria-label="`Select ${factor.name}`"
+          :aria-pressed="factor.id === selectedFactor">
+          <div class="variable-preview">
+            <span v-for="(color, idx) in factor.colorScale" :key="idx" class="variable-preview-swatch"
+              :style="{ backgroundColor: color }"></span>
+          </div>
+          <div class="variable-details">
+            <span class="variable-name">{{ factor.name }}</span>
+            <span class="variable-unit" v-if="factor.unit">{{ factor.unit }}</span>
+          </div>
+          <span v-if="factor.id === selectedFactor" class="variable-checkmark">✓</span>
+        </button>
       </div>
 
-      <div class="legend-ribbon" :style="{ background: ribbonGradient }" aria-hidden="true"></div>
-      <div class="legend-scale" role="list">
+      <div v-if="legendBins.length > 0" class="legend-ribbon" :style="{ background: ribbonGradient }"
+        aria-hidden="true"></div>
+      <div v-if="legendBins.length > 0" class="legend-scale" role="list">
         <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
           :aria-label="`Filter to ${bin.range} (${bin.label || 'bin'})`" @click="onLegendClick(i)">
           <span class="legend-swatch" :style="{ backgroundColor: bin.color }" />
@@ -105,7 +115,7 @@ import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   factors: { type: Array, required: true },
-  selectedFactor: { type: String, required: true },
+  selectedFactor: { type: String, default: '' },
   legendBins: { type: Array, required: true },   // [{color, range, label}]
   palette: { type: Array, default: () => [] },   // same colors used on the map
   unit: { type: String, default: '' },
@@ -173,7 +183,7 @@ function onLegendClick(i) {
 function submitPin() {
   const query = pinQuery.value.trim()
   if (!query) {
-    pinErrorLocal.value = 'Please enter a valid ZIP code.'
+    pinErrorLocal.value = 'Please enter a ZIP code or address.'
     return
   }
   pinErrorLocal.value = ''
@@ -296,6 +306,87 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
   letter-spacing: 0.02em;
 }
 
+.variable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.variable-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.variable-item:hover {
+  border-color: #cbd5f5;
+  background: #f8fafc;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.variable-item--selected {
+  border-color: #2563eb;
+  background: #eef2ff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.variable-preview {
+  display: flex;
+  gap: 2px;
+  width: 64px;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+  background: #f1f5f9;
+}
+
+.variable-preview-swatch {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+}
+
+.variable-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.variable-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.variable-item--selected .variable-name {
+  color: #2563eb;
+}
+
+.variable-unit {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.variable-checkmark {
+  color: #2563eb;
+  font-size: 18px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 .field-control select,
 .field-control input[type="text"],
 .field-control input[type="number"] {
@@ -324,21 +415,23 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 
 .legend-scale {
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
   background: #f8fafc;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 8px;
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
 }
 
 .legend-item:hover {
@@ -347,23 +440,30 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 }
 
 .legend-swatch {
-  width: 30px;
-  height: 18px;
-  border-radius: 6px;
+  width: 24px;
+  height: 16px;
+  border-radius: 4px;
   border: 1px solid rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
 }
 
 .legend-text {
   display: flex;
   flex-direction: column;
-  font-size: 13px;
+  font-size: 12px;
   color: #1f2937;
   flex: 1;
+  min-width: 0;
+}
+
+.legend-range {
+  font-weight: 500;
 }
 
 .legend-sub {
   color: #64748b;
-  font-size: 12px;
+  font-size: 11px;
+  margin-top: 2px;
 }
 
 .legend-active-dot {
@@ -723,40 +823,50 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 }
 
 .legend-scale {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid #e6e6e6;
-  padding: 6px;
-  border-radius: 6px;
+  justify-content: flex-start;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid transparent;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
-  text-align: left
+  text-align: left;
+  width: 100%;
+  transition: all 0.2s ease;
 }
 
 .legend-item:hover {
-  border-color: #a8c5ff;
-  box-shadow: 0 0 0 2px rgba(56, 132, 255, .12)
+  border-color: #cbd5f5;
+  background: #eef2ff;
 }
 
 .legend-swatch {
-  width: 28px;
-  height: 18px;
-  border: 1px solid #ddd;
-  border-radius: 3px
+  width: 24px;
+  height: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .legend-text {
   display: flex;
   flex-direction: column;
-  font-size: 13px
+  font-size: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.legend-range {
+  font-weight: 500;
 }
 
 .legend-sub {

@@ -31,7 +31,10 @@ const props = defineProps({
   showStateBorders: { type: Boolean, default: false },
 
   // optional filter expression from parent
-  filter: { type: [Array, Boolean, null], default: null }
+  filter: { type: [Array, Boolean, null], default: null },
+
+  // search pin location [lng, lat]
+  searchPinLocation: { type: Array, default: null }
 })
 
 const mapEl = ref(null)
@@ -41,6 +44,7 @@ let hoveredId = null
 let lastClickCameFromLayer = false
 let canvasMouseLeaveHandlerRegistered = false
 const selectionLayerId = `${props.layerId}-selection`
+let searchMarker = null
 
 const defaultPopupOptions = {
   closeButton: false,
@@ -61,6 +65,10 @@ const normalizeToStrings = (ids = []) => {
 }
 
 const colorExpr = (field, breaks, colors) => {
+  // If no field selected, return a single neutral gray color
+  if (!field || !breaks || breaks.length === 0) {
+    return colors[0] || '#e5e7eb'
+  }
   const expr = ['step', ['get', field], colors[0]]
   breaks.forEach((brk, idx) => expr.push(brk, colors[idx + 1] ?? colors.at(-1)))
   return expr
@@ -122,15 +130,39 @@ function getTooltipHtml(feature) {
     return props.tooltipFormatter(feature)
   }
   if (props.tooltipFields?.length) {
-    const segments = props.tooltipFields
+    const fields = props.tooltipFields
       .map(({ label, property, formatter }) => {
         const raw = feature.properties?.[property]
         const value = formatter ? formatter(raw, feature) : raw
         if (value === undefined || value === null) return null
-        return `<div><strong>${label}:</strong> ${value}</div>`
+        return { label, value }
       })
       .filter(Boolean)
-    return segments.length ? `<div class="map-tooltip">${segments.join('')}</div>` : null
+
+    if (!fields.length) return null
+
+    // First field is usually Location - show as header
+    const locationField = fields.find(f => f.label === 'Location')
+    const dataFields = fields.filter(f => f.label !== 'Location')
+
+    let html = '<div class="map-tooltip">'
+
+    // Location header
+    if (locationField) {
+      html += `<div class="map-tooltip-header">${locationField.value}</div>`
+    }
+
+    // Data fields
+    if (dataFields.length) {
+      html += '<div class="map-tooltip-data">'
+      dataFields.forEach(({ label, value }) => {
+        html += `<div class="map-tooltip-row"><span class="map-tooltip-label">${label}:</span> <span class="map-tooltip-value">${value}</span></div>`
+      })
+      html += '</div>'
+    }
+
+    html += '</div>'
+    return html
   }
   const value = feature.properties?.[props.valueField]
   if (value == null) return null
@@ -138,13 +170,26 @@ function getTooltipHtml(feature) {
 }
 
 function handleMouseMove(e) {
-  if (!props.hoverHighlight || !map) return
+  if (!map) return
   const feature = e.features?.[0]
   if (!feature || feature.id == null) return
-  if (hoveredId !== feature.id) {
+
+  // Update hover state for visual highlighting
+  if (props.hoverHighlight && hoveredId !== feature.id) {
     clearHoverState()
     hoveredId = feature.id
     map.setFeatureState({ source: props.sourceId, id: hoveredId }, { hover: true })
+  } else if (!props.hoverHighlight && hoveredId !== feature.id) {
+    hoveredId = feature.id
+  }
+
+  // Show tooltip on hover - always show when moving over features
+  if (props.tooltipFields?.length || typeof props.tooltipFormatter === 'function') {
+    const html = getTooltipHtml(feature)
+    if (html) {
+      ensurePopup()
+      popup.setLngLat(e.lngLat).setHTML(html).addTo(map)
+    }
   }
 }
 
@@ -152,6 +197,7 @@ function handleMouseLeave() {
   if (!map) return
   map.getCanvas().style.cursor = ''
   clearHoverState()
+  closePopup()
 }
 
 function handleCursorEnter() {
@@ -178,6 +224,9 @@ function handleFeatureClick(e) {
     popup.remove()
     lastClickCameFromLayer = false
   }
+
+  // Prevent hover tooltip from interfering with click popup
+  hoveredId = feature.id || null
 }
 
 function handleMapClick(e) {
@@ -220,13 +269,48 @@ function updateSelectionLayer() {
   )
 }
 
+function updateSearchPin() {
+  if (!map) return
+
+  // Remove existing marker
+  if (searchMarker) {
+    searchMarker.remove()
+    searchMarker = null
+  }
+
+  // Add new marker if location is provided
+  if (props.searchPinLocation && Array.isArray(props.searchPinLocation) && props.searchPinLocation.length === 2) {
+    const [lng, lat] = props.searchPinLocation
+    if (Number.isFinite(lng) && Number.isFinite(lat)) {
+      // Create a custom pin element
+      const el = document.createElement('div')
+      el.className = 'search-pin-marker'
+      el.style.width = '24px'
+      el.style.height = '32px'
+      el.style.backgroundImage = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'32\' viewBox=\'0 0 24 32\'%3E%3Cpath fill=\'%23dc2626\' d=\'M12 0C7.58 0 4 3.58 4 8c0 6.5 8 16 8 16s8-9.5 8-16c0-4.42-3.58-8-8-8zm0 11c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z\'/%3E%3C/svg%3E")'
+      el.style.backgroundSize = 'contain'
+      el.style.backgroundRepeat = 'no-repeat'
+      el.style.backgroundPosition = 'center'
+      el.style.cursor = 'pointer'
+
+      searchMarker = new maplibregl.Marker({
+        element: el,
+        anchor: 'bottom'
+      })
+        .setLngLat([lng, lat])
+        .addTo(map)
+    }
+  }
+}
+
 function registerInteraction() {
   if (!map) return
   map.on('mouseenter', props.layerId, handleCursorEnter)
   map.on('mouseleave', props.layerId, handleMouseLeave)
   map.on('click', handleMapClick)
   map.on('mousedown', handleMapMouseDown)
-  if (props.hoverHighlight) {
+  // Register mousemove for hover highlights or tooltips
+  if (props.hoverHighlight || props.tooltipFields?.length || typeof props.tooltipFormatter === 'function') {
     map.on('mousemove', props.layerId, handleMouseMove)
   }
   if (props.zoomOnClick || props.tooltipFields?.length || typeof props.tooltipFormatter === 'function') {
@@ -390,12 +474,22 @@ onMounted(() => {
     })
 
     setTimeout(() => map.resize(), 0)
+    updateSearchPin() // Initialize pin if location is already set
   })
 })
 
 watch(
   () => [props.valueField, JSON.stringify(props.breaks), JSON.stringify(props.colors), JSON.stringify(props.filter)],
   () => updatePaint()
+)
+
+watch(
+  () => props.searchPinLocation,
+  () => {
+    if (!map || !map.isStyleLoaded()) return
+    updateSearchPin()
+  },
+  { deep: true }
 )
 
 watch(
@@ -497,6 +591,10 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  if (searchMarker) {
+    searchMarker.remove()
+    searchMarker = null
+  }
   unregisterInteraction()
   if (canvasMouseLeaveHandlerRegistered && mapEl.value) {
     mapEl.value.removeEventListener('mouseleave', handleCanvasMouseLeave)
