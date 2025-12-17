@@ -58,54 +58,21 @@
         aria-hidden="true"></div>
       <div v-if="legendBins.length > 0" class="legend-scale" role="list">
         <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
-          :aria-label="`Filter to ${bin.range} (${bin.label || 'bin'})`" @click="onLegendClick(i)">
+          :aria-label="`Filter to ${bin.label || 'this level'}`" @click="onLegendClick(i)">
           <span class="legend-swatch" :style="{ backgroundColor: bin.color }" />
           <span class="legend-text">
-            <span class="legend-range">{{ bin.range }}</span>
-            <span class="legend-sub">{{ bin.label }}</span>
+            <span class="legend-range">{{ bin.label }}</span>
           </span>
 
         </button>
       </div>
 
       <transition name="fade">
-        <div v-if="selectedRange" class="filter-chip">
-          <span>Filter: {{ fmt(selectedRange[0]) }} – {{ fmt(selectedRange[1]) }}</span>
-          <button class="chip-x" @click="$emit('range-change', null)" aria-label="Clear filter">✕</button>
+        <div v-if="selectedFilterLabel" class="filter-chip">
+          <span>Filter: {{ selectedFilterLabel }}</span>
+          <button class="chip-x" @click="clearFilter" aria-label="Clear filter">✕</button>
         </div>
       </transition>
-      <div class="panel-heading">
-        <div class="filter">
-          <h3 class="panel-heading-title">Value Filter</h3>
-          <p class="panel-heading-meta">Domain range: {{ fmt(domain.min) }} – {{ fmt(domain.max) }}</p>
-        </div>
-      </div>
-      <div class="range-row">
-        <label class="range-group">
-          <span>Minimum</span>
-          <div class="range-controls">
-            <input type="number" class="range-num" :value="min"
-              @input="updateMin($event.target && $event.target.value)" />
-            <input type="range" :min="domain.min" :max="domain.max" step="any" :value="min"
-              @input="updateMin($event.target && $event.target.value)" />
-          </div>
-        </label>
-      </div>
-      <div class="range-row">
-        <label class="range-group">
-          <span>Maximum</span>
-          <div class="range-controls">
-            <input type="number" class="range-num" :value="max"
-              @input="updateMax($event.target && $event.target.value)" />
-            <input type="range" :min="domain.min" :max="domain.max" step="any" :value="max"
-              @input="updateMax($event.target && $event.target.value)" />
-          </div>
-        </label>
-      </div>
-
-      <div class="range-actions">
-        <button class="btn-muted" @click="$emit('range-change', null)">Reset range</button>
-      </div>
     </section>
   </aside>
 </template>
@@ -131,6 +98,7 @@ const showHelp = ref(false)
 const pinQuery = ref('')
 const pinErrorLocal = ref('')
 const pinErrorToDisplay = computed(() => props.pinErrorMessage || pinErrorLocal.value)
+const selectedFilterLabel = ref('')
 
 const selectedFactorData = computed(() =>
   props.factors.find(f => f.id === props.selectedFactor) || props.factors[0]
@@ -142,20 +110,13 @@ const ribbonGradient = computed(() =>
 
 const showNoData = computed(() => !!props.noDataColor)
 
-const domain = computed(() => {
-  const nums = props.legendBins.flatMap(b => (String(b.range).match(/[+-]?\d+(\.\d+)?/g) || []).map(Number))
-  if (!nums.length) return { min: 0, max: 1 }
-  return { min: Math.min(...nums), max: Math.max(...nums) }
+watch(() => props.selectedRange, value => {
+  if (!value) selectedFilterLabel.value = ''
 })
 
-const min = ref(domain.value.min)
-const max = ref(domain.value.max)
-watch(domain, d => { min.value = d.min; max.value = d.max })
-
-function updateMin(v) { const n = Number(v); if (Number.isFinite(n)) { min.value = n; if (min.value > max.value) max.value = min.value; emit('range-change', [min.value, max.value]) } }
-function updateMax(v) { const n = Number(v); if (Number.isFinite(n)) { max.value = n; if (max.value < min.value) min.value = max.value; emit('range-change', [min.value, max.value]) } }
-
 function onLegendClick(i) {
+  const bin = props.legendBins[i]
+  selectedFilterLabel.value = bin?.label || ''
   const text = String(props.legendBins[i]?.range || '')
   const nums = text.match(/[+-]?\d+(\.\d+)?/g)?.map(Number) || []
 
@@ -177,6 +138,7 @@ function onLegendClick(i) {
     return
   }
 
+  selectedFilterLabel.value = ''
   emit('range-change', null)
 }
 
@@ -202,6 +164,11 @@ function intersectsSelected(i) {
 }
 
 function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) % 1 ? n.toFixed(1) : String(n)) : '—' }
+
+function clearFilter() {
+  selectedFilterLabel.value = ''
+  emit('range-change', null)
+}
 </script>
 
 <style scoped>
