@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue'
 import maplibregl from 'maplibre-gl'
 
 const emit = defineEmits(['hex-click'])
@@ -491,8 +491,23 @@ watch(
 watch(
   () => props.searchPinLocation,
   () => {
-    if (!map || !map.isStyleLoaded()) return
-    updateSearchPin()
+    if (!map) return
+    nextTick(() => {
+      const updateAfterReady = () => {
+        if (map && map.isStyleLoaded()) {
+          updateSearchPin()
+        }
+      }
+      // Wait for map to finish any animations before adding marker
+      if (map.isStyleLoaded()) {
+        // Wait for moveend to ensure animation is complete
+        map.once('moveend', updateAfterReady)
+        // Also update immediately in case map is already stationary
+        updateAfterReady()
+      } else {
+        map.once('idle', updateAfterReady)
+      }
+    })
   },
   { deep: true }
 )
