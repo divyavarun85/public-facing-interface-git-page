@@ -301,23 +301,41 @@ const tooltipFields = computed(() => {
         formatter: value => formatValue(value, digits, unit)
     })
 
-    // Build list of additional fields, excluding the currently selected metric to avoid duplication
-    const additionalFields = [
+    // Check if a variable is selected
+    const isVariableSelected = metric.valueField && metric.name !== 'No variable selected'
+
+    // All available fields
+    const allFields = [
         makeField('Population', 'E_TOTPOP', 0),
         makeField('Air Pollution Ranking', 'EPL_PM', 2),
         makeField('Asthma Rate', 'EP_ASTHMA', 1),
         makeField('Social Vulnerability', 'SPL_SVM', 2)
-    ].filter(field => field.property !== metric.valueField)
-
-    return [
-        {
-            label: 'Location',
-            property: metric.valueField,
-            formatter: locationFormatter
-        },
-        makeField(metric.name, metric.valueField, 2, metric.unit),
-        ...additionalFields
     ]
+
+    // Use a dummy property for Location when no variable is selected
+    const locationProperty = isVariableSelected ? metric.valueField : 'E_TOTPOP'
+
+    if (isVariableSelected) {
+        // If variable is selected: show only Location + selected variable
+        return [
+            {
+                label: 'Location',
+                property: locationProperty,
+                formatter: locationFormatter
+            },
+            makeField(metric.name, metric.valueField, 2, metric.unit)
+        ]
+    } else {
+        // If no variable is selected: show Location + all fields
+        return [
+            {
+                label: 'Location',
+                property: locationProperty,
+                formatter: locationFormatter
+            },
+            ...allFields
+        ]
+    }
 })
 
 watch(() => props.center, value => {
