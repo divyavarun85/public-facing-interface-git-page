@@ -52,6 +52,8 @@ import MapHexLayer from './MapHexLayer.vue'
 import HexDataSidebar from './HexDataSidebar.vue'
 import { MAP_STYLE } from '../config/mapStyle'
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon'
+import booleanIntersects from '@turf/boolean-intersects'
+import buffer from '@turf/buffer'
 import { point as turfPoint } from '@turf/helpers'
 
 const props = defineProps({
@@ -404,11 +406,34 @@ async function handlePinSearch(queryInput) {
             }
 
             const pt = turfPoint([lng, lat])
-            const matches = features.filter(feature => booleanPointInPolygon(pt, feature))
 
-            if (!matches.length) throw new Error('Location falls outside the data coverage area.')
+            // First, find hexes that contain the point
+            const containingMatches = features.filter(feature => booleanPointInPolygon(pt, feature))
 
-            hexIds = matches.map(feature => {
+            // Also find hexes that are nearby by creating a buffer around the point
+            // Buffer radius: ~5km (0.05 degrees ≈ 5.5km at mid-latitudes)
+            // This will catch hexes that overlap with the zip code/address area
+            const bufferRadius = 0.05 // degrees, approximately 5-6km
+            const searchBuffer = buffer(pt, bufferRadius, { units: 'degrees' })
+
+            // Find all hexes that intersect with the buffer
+            const overlappingMatches = features.filter(feature => {
+                // Check if hex contains the point
+                if (booleanPointInPolygon(pt, feature)) return true
+                // Check if hex intersects with the buffer
+                try {
+                    return booleanIntersects(searchBuffer, feature)
+                } catch (e) {
+                    return false
+                }
+            })
+
+            // Combine matches and remove duplicates
+            const allMatches = [...new Set([...containingMatches, ...overlappingMatches])]
+
+            if (!allMatches.length) throw new Error('Location falls outside the data coverage area.')
+
+            hexIds = allMatches.map(feature => {
                 const rawHexId = feature.properties?.hex_id
                 if (rawHexId === undefined || rawHexId === null) return null
                 const numeric = Number(rawHexId)
