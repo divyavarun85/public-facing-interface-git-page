@@ -286,6 +286,7 @@ function updateSelectionLayer() {
   map.setPaintProperty(selectionLayerId, 'line-width',
     Number.isFinite(props.selectedHexWidth) ? props.selectedHexWidth : 3
   )
+  map.setPaintProperty(selectionLayerId, 'line-dasharray', [0.5, 3])
 }
 
 function updateSearchPin() {
@@ -443,7 +444,8 @@ onMounted(() => {
       paint: {
         'line-color': props.selectedHexColor,
         'line-width': props.selectedHexWidth,
-        'line-opacity': 0.95
+        'line-opacity': 0.95,
+        'line-dasharray': [0.5, 3]
       },
       layout: { 'line-join': 'round', 'line-cap': 'round' }
     }, beforeId)

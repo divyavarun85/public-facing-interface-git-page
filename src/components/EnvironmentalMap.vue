@@ -40,8 +40,8 @@
                     :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="mapCenter"
                     :zoom="mapZoom" :filter="layerFilter" :hoverHighlight="true" :zoomOnClick="true"
                     :zoomOnClickTarget="8" :statesUrl="statesGeoUrl" :showStateBorders="true"
-                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#111827'" :tooltipFields="tooltipFields"
-                    :searchPinLocation="searchPinLocation" @hex-click="handleHexClick" />
+                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#dc2626'" :selectedHexWidth="1.5"
+                    :tooltipFields="tooltipFields" :searchPinLocation="searchPinLocation" @hex-click="handleHexClick" />
 
                 <!-- Right Sidebar for Hex Data -->
                 <HexDataSidebar v-if="selectedHexFeature" :feature="selectedHexFeature" :factors="factors"
