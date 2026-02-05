@@ -4,9 +4,16 @@
       <div>
         <h2>Public Facing Interface</h2>
       </div>
-      <button class="help-toggle" @click="showHelp = !showHelp" :aria-label="showHelp ? 'Close help' : 'Show help'">
-        {{ showHelp ? '✕' : '?' }}
-      </button>
+      <div class="header-actions">
+        <button class="mobile-close-btn" @click="$emit('close-sidebar')" aria-label="Close sidebar">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M15 5L5 15M5 5L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+        <button class="help-toggle" @click="showHelp = !showHelp" :aria-label="showHelp ? 'Close help' : 'Show help'">
+          {{ showHelp ? '✕' : '?' }}
+        </button>
+      </div>
     </header>
 
     <transition name="collapse">
@@ -91,7 +98,7 @@ const props = defineProps({
   pinErrorMessage: { type: String, default: '' },
   pinLoading: { type: Boolean, default: false }
 })
-const emit = defineEmits(['factor-change', 'range-change', 'legend-bin-click', 'toggle-overlay', 'pin-search'])
+const emit = defineEmits(['factor-change', 'range-change', 'legend-bin-click', 'toggle-overlay', 'pin-search', 'close-sidebar'])
 
 const showHelp = ref(false)
 const pinQuery = ref('')
@@ -188,6 +195,31 @@ function clearFilter() {
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 4px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-close-btn {
+  display: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid #cbd5f5;
+  background: #f8fafc;
+  cursor: pointer;
+  color: #475569;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.mobile-close-btn:hover {
+  background: #e2e8f0;
 }
 
 .panel-eyebrow {
@@ -917,5 +949,108 @@ function clearFilter() {
   align-items: center;
   gap: 15px;
   justify-content: space-between;
+}
+
+/* Desktop: Ensure sidebar is always visible */
+@media (min-width: 769px) {
+  .map-controls {
+    position: relative !important;
+    transform: none !important;
+    width: 340px;
+    flex-shrink: 0;
+  }
+
+  .mobile-close-btn {
+    display: none !important;
+  }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .map-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 320px;
+    max-width: 85vw;
+    height: 100vh;
+    z-index: 999;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .map-controls.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .mobile-close-btn {
+    display: inline-flex;
+  }
+
+  .panel-header h2 {
+    font-size: 18px;
+  }
+
+  .variable-list {
+    gap: 6px;
+  }
+
+  .variable-item {
+    padding: 10px;
+  }
+
+  .legend-scale {
+    grid-template-columns: 1fr;
+  }
+
+  .pin-input-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pin-input-row input {
+    width: 100%;
+  }
+
+  .btn-primary {
+    width: 100%;
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-controls {
+    padding: 16px 12px;
+  }
+
+  .panel-header h2 {
+    font-size: 16px;
+  }
+
+  .variable-preview {
+    width: 48px;
+    height: 18px;
+  }
+
+  .variable-name {
+    font-size: 13px;
+  }
+
+  .variable-unit {
+    font-size: 11px;
+  }
+
+  .field-label {
+    font-size: 12px;
+  }
+
+  .legend-item {
+    padding: 6px 8px;
+  }
+
+  .legend-text {
+    font-size: 11px;
+  }
 }
 </style>

@@ -23,10 +23,17 @@
             </div>
         </header>
         <div class="environmental-map-container">
-            <MapControls :factors="factors" :selected-factor="selectedFactor" :legend-bins="legendBins"
-                :palette="active.colors" :selected-range="currentRange" :pin-error-message="pinErrorMessage"
-                :pin-loading="pinLoading" @factor-change="onFactorChange" @range-change="onRangeChange"
-                @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch" />
+            <button v-if="!sidebarOpen" class="mobile-menu-toggle" @click="sidebarOpen = true" aria-label="Open menu">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </button>
+            <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
+            <MapControls :class="{ 'sidebar-open': sidebarOpen }" :factors="factors" :selected-factor="selectedFactor"
+                :legend-bins="legendBins" :palette="active.colors" :selected-range="currentRange"
+                :pin-error-message="pinErrorMessage" :pin-loading="pinLoading" @factor-change="onFactorChange"
+                @range-change="onRangeChange" @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
+                @close-sidebar="sidebarOpen = false" />
             <div class="map-wrapper">
 
                 <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :mapStyle="mapStyle"
@@ -78,6 +85,7 @@ const pinErrorMessage = ref('')
 const zipCache = new Map() // cache zip/address lookups
 const searchPinLocation = ref(null) // [lng, lat] for the searched location pin
 const selectedHexFeature = ref(null) // Feature data for the clicked hex
+const sidebarOpen = ref(false) // Mobile sidebar state
 
 function isNumeric(v) { return typeof v === 'number' && Number.isFinite(v) }
 
@@ -261,8 +269,21 @@ const layerFilter = computed(() => {
     ]
 })
 
-function onFactorChange(id) { selectedFactor.value = id; currentRange.value = null }
-function onRangeChange(range) { currentRange.value = range }
+function onFactorChange(id) {
+    selectedFactor.value = id;
+    currentRange.value = null;
+    // Close sidebar on mobile when selecting a factor so user can see the map update
+    if (window.innerWidth <= 768) {
+        sidebarOpen.value = false
+    }
+}
+function onRangeChange(range) {
+    currentRange.value = range;
+    // Close sidebar on mobile when selecting a legend range so user can see the map update
+    if (window.innerWidth <= 768) {
+        sidebarOpen.value = false
+    }
+}
 function handleHexClick(feature) { selectedHexFeature.value = feature }
 
 const statesGeoUrl = STATES_GEO_URL
@@ -351,6 +372,10 @@ watch(() => props.zoom, value => {
 })
 
 async function handlePinSearch(queryInput) {
+    // Close sidebar on mobile when searching so user can see the map zoom
+    if (window.innerWidth <= 768) {
+        sidebarOpen.value = false
+    }
     const query = (queryInput || '').trim()
     pinLoading.value = true
     pinErrorMessage.value = ''
@@ -575,11 +600,119 @@ async function handlePinSearch(queryInput) {
     flex: 1;
     display: flex;
     min-height: 0;
+    height: calc(100vh - 80px);
+}
+
+@media (max-width: 768px) {
+    .environmental-map-container {
+        height: calc(100vh - 60px);
+    }
 }
 
 .map-wrapper {
     flex: 1;
     position: relative;
     min-height: 0;
+    width: 100%;
+}
+
+/* Mobile Menu Toggle Button */
+.mobile-menu-toggle {
+    display: none;
+    position: fixed;
+    top: 80px;
+    left: 16px;
+    z-index: 1001;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    color: #1f2937;
+    transition: all 0.2s ease;
+}
+
+.mobile-menu-toggle:hover {
+    background: #f8fafc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .mobile-menu-toggle {
+        display: block;
+    }
+
+    .sidebar-overlay {
+        display: block;
+    }
+
+    .app-header {
+        padding: 12px 16px;
+        padding-left: 60px;
+    }
+
+    .app-header__nav {
+        display: none;
+    }
+
+    .user-name {
+        display: none;
+    }
+
+    .logo-wordmark {
+        font-size: 20px;
+    }
+
+    .logo-wordmark-of {
+        font-size: 18px;
+    }
+
+    .logo-tagline {
+        font-size: 7px;
+    }
+
+    .environmental-map-container {
+        height: calc(100vh - 60px);
+    }
+}
+
+@media (max-width: 480px) {
+    .app-header {
+        padding: 10px 12px;
+        padding-left: 56px;
+    }
+
+    .logo-wordmark {
+        font-size: 18px;
+    }
+
+    .logo-wordmark-of {
+        font-size: 16px;
+    }
 }
 </style>
