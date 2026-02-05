@@ -353,7 +353,12 @@ onMounted(() => {
     container: mapEl.value,
     style: props.mapStyle,
     center: props.center,
-    zoom: props.zoom
+    zoom: props.zoom,
+    // Performance optimizations
+    antialias: false, // Disable antialiasing for better performance
+    renderWorldCopies: false, // Don't render multiple world copies
+    maxPitch: 0, // Disable 3D tilt for better performance
+    preserveDrawingBuffer: false // Better performance
   })
 
   map.on('error', err => console.error('MapLibre error:', err?.error || err))
@@ -364,7 +369,10 @@ onMounted(() => {
     map.addSource(props.sourceId, {
       type: 'geojson',
       data: props.data,
-      generateId: true
+      generateId: true,
+      // Performance optimization: use cluster for very large datasets
+      // cluster: props.data?.features?.length > 10000,
+      // clusterRadius: 50
     })
 
     map.addLayer({

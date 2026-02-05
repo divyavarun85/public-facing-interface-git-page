@@ -102,7 +102,15 @@ function summarize(key, features) {
 async function prepareFeatureCollection(dataSource) {
     if (!dataSource) return null
     const rawData = typeof dataSource === 'string'
-        ? await fetch(dataSource, { cache: 'no-store' }).then(res => {
+        ? await fetch(dataSource, { 
+            // Enable caching for better performance
+            cache: 'default',
+            // Add headers for better caching
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'public, max-age=3600'
+            }
+        }).then(res => {
             if (!res.ok) throw new Error(`Failed to load dataset (${res.status})`)
             return res.json()
         })
@@ -127,11 +135,22 @@ async function initializeFromData(dataSource) {
     sample.forEach(f => Object.entries(f.properties || {}).forEach(([k, v]) => { if (isNumeric(v)) keys.add(k) }))
     numericKeys.value = Array.from(keys)
 
-    stats.value = {}
-    numericKeys.value.forEach(k => {
-        const s = summarize(k, feats)
-        if (s) stats.value[k] = s
-    })
+    // Optimize stats calculation - use requestIdleCallback if available
+    const calculateStats = () => {
+        stats.value = {}
+        numericKeys.value.forEach(k => {
+            const s = summarize(k, feats)
+            if (s) stats.value[k] = s
+        })
+    }
+    
+    // Use requestIdleCallback for non-blocking stats calculation
+    if (typeof requestIdleCallback !== 'undefined') {
+        requestIdleCallback(calculateStats, { timeout: 2000 })
+    } else {
+        // Fallback: use setTimeout to defer calculation
+        setTimeout(calculateStats, 0)
+    }
 
     const availableFactorIds = new Set(
         catalog.filter(c => stats.value[c.key]).map(c => c.id)
