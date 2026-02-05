@@ -40,7 +40,7 @@
                     :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="mapCenter"
                     :zoom="mapZoom" :filter="layerFilter" :hoverHighlight="true" :zoomOnClick="true"
                     :zoomOnClickTarget="8" :statesUrl="statesGeoUrl" :showStateBorders="true"
-                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#dc2626'" :selectedHexWidth="1.5"
+                    :selectedHexIds="selectedHexIds" :selectedHexColor="'#dc2626'" :selectedHexWidth="3"
                     :tooltipFields="tooltipFields" :searchPinLocation="searchPinLocation" @hex-click="handleHexClick" />
 
                 <!-- Right Sidebar for Hex Data -->
@@ -102,13 +102,13 @@ function summarize(key, features) {
 async function prepareFeatureCollection(dataSource) {
     if (!dataSource) return null
     const rawData = typeof dataSource === 'string'
-        ? await fetch(dataSource, { 
+        ? await fetch(dataSource, {
             // Enable caching for better performance
             cache: 'default',
             // Add headers for better caching
             headers: {
-              'Accept': 'application/json',
-              'Cache-Control': 'public, max-age=3600'
+                'Accept': 'application/json',
+                'Cache-Control': 'public, max-age=3600'
             }
         }).then(res => {
             if (!res.ok) throw new Error(`Failed to load dataset (${res.status})`)
@@ -143,7 +143,7 @@ async function initializeFromData(dataSource) {
             if (s) stats.value[k] = s
         })
     }
-    
+
     // Use requestIdleCallback for non-blocking stats calculation
     if (typeof requestIdleCallback !== 'undefined') {
         requestIdleCallback(calculateStats, { timeout: 2000 })
