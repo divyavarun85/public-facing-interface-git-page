@@ -189,7 +189,7 @@ watch(
 /** factor catalog (labels + mapping to CHEL keys) */
 const catalog = [
     {
-        id: 'pm25', name: 'Air Quality', unit: '', key: 'E_PM',
+        id: 'pm25', name: 'Air Pollution', unit: 'μg/m³', key: 'E_PM',
         // Grayscale: Light gray (low PM2.5) → Dark gray (high PM2.5)
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
     },
@@ -199,7 +199,7 @@ const catalog = [
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
     },
     {
-        id: 'pm25pct', name: 'Air Pollution Ranking', unit: '', key: 'EPL_PM',
+        id: 'pm25pct', name: 'Air Pollution Percentile', unit: '', key: 'EPL_PM',
         // Grayscale: Light gray (low ranking) → Dark gray (high ranking)
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
     },

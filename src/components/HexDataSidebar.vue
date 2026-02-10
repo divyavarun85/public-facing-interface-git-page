@@ -22,9 +22,9 @@
                 <h3 class="section-title">Overview</h3>
                 <div class="text-content">
                     <p class="description-text">
-                        The ranking is <strong>{{ getOverallRank() }}</strong> for Hexagon {{ hexId }}
-                        when compared to other US communities. This area shows
-                        {{ getRankDescription() }} environmental characteristics relative to national averages.
+                        This hexagon has an overall ranking of <strong>{{ getOverallRank() }}</strong>
+                        when compared to other areas in the dataset. This area shows
+                        {{ getRankDescription() }} environmental characteristics.
                     </p>
                 </div>
             </div>
@@ -105,7 +105,7 @@ function formatNumber(value, digits = 2) {
 }
 
 function formatValue(factor) {
-    const value = properties.value[factor.key]
+    const value = properties.value[factor.valueField || factor.key]
     if (value === null || value === undefined || Number.isNaN(value)) return 'N/A'
 
     // Use appropriate digits based on factor type
@@ -117,13 +117,25 @@ function formatValue(factor) {
 }
 
 function getRankLabel(factor) {
-    const value = properties.value[factor.key]
+    const fieldKey = factor.valueField || factor.key
+    const value = properties.value[fieldKey]
     if (value === null || value === undefined || Number.isNaN(value)) return 'N/A'
 
     // Get stats for this factor
-    if (!props.stats || !props.stats[factor.key]) return ''
+    if (!props.stats || !props.stats[fieldKey]) {
+        // If stats not available, try to use breaks from factor if available
+        if (factor.breaks && Array.isArray(factor.breaks) && factor.breaks.length >= 4) {
+            const breaks = factor.breaks
+            if (value < breaks[0]) return 'Very Low'
+            if (value < breaks[1]) return 'Low'
+            if (value < breaks[2]) return 'Moderate'
+            if (value < breaks[3]) return 'High'
+            return 'Very High'
+        }
+        return 'N/A'
+    }
 
-    const factorStats = props.stats[factor.key]
+    const factorStats = props.stats[fieldKey]
     const breaks = [factorStats.q20, factorStats.q40, factorStats.q60, factorStats.q80]
 
     // Determine which bucket the value falls into
@@ -144,9 +156,9 @@ function getOverallRank() {
             if (rank === 'Moderate') return 3
             if (rank === 'High') return 4
             if (rank === 'Very High') return 5
-            return 0
+            return null // Use null instead of 0 to distinguish from valid ranks
         })
-        .filter(r => r > 0)
+        .filter(r => r !== null && r > 0) // Filter out null and invalid ranks
 
     if (ranks.length === 0) return 'N/A'
 
@@ -170,9 +182,9 @@ function getRankDescription() {
 
 function getFactorDescription(factor) {
     const descriptions = {
-        'pm25': 'Air Quality measures the concentration of fine particulate matter (PM2.5) in the air, which is a key indicator of air pollution levels.',
+        'pm25': 'Air Pollution measures the concentration of fine particulate matter (PM2.5) in the air. Lower values indicate better air quality.',
         'asthma': 'Asthma Rates represent the prevalence of asthma in the population, which can be influenced by both environmental and demographic factors.',
-        'pm25pct': 'Air Pollution Ranking provides a percentile ranking of air quality relative to all areas in the dataset, where higher values indicate worse air quality.',
+        'pm25pct': 'Air Pollution Percentile shows where this area ranks compared to all other areas in the dataset (0-1 scale, where lower values indicate better air quality).',
         'svm': 'Social Vulnerability Index measures the susceptibility of communities to external stresses, combining socioeconomic status, household composition, and other factors.',
         'pop': 'Population indicates the number of residents in this geographic area, which helps contextualize the scale of environmental impacts.'
     }

@@ -53,8 +53,14 @@
               :style="{ backgroundColor: color }"></span>
           </div>
           <div class="variable-details">
-            <span class="variable-name">{{ factor.name }}</span>
-            <span class="variable-unit" v-if="factor.unit">{{ factor.unit }}</span>
+            <div class="variable-header">
+              <span class="variable-name">{{ factor.name }}</span>
+              <span class="variable-unit" v-if="factor.unit">{{ factor.unit }}</span>
+            </div>
+            <p class="variable-description">{{ getFactorShortDescription(factor.id) }}</p>
+            <div v-if="factor.id === selectedFactor" class="variable-status">
+              <span class="status-indicator">Currently displaying on map</span>
+            </div>
           </div>
           <span v-if="factor.id === selectedFactor" class="variable-checkmark">✓</span>
         </button>
@@ -174,6 +180,17 @@ function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) %
 function clearFilter() {
   selectedFilterLabel.value = ''
   emit('range-change', null)
+}
+
+function getFactorShortDescription(factorId) {
+  const shortDescriptions = {
+    'pm25': 'Air quality based on particulate matter concentration.',
+    'asthma': 'Percentage of population with current asthma diagnosis.',
+    'pm25pct': 'Percentile ranking of air pollution levels compared to national data.',
+    'svm': 'Community vulnerability to environmental and social stressors.',
+    'pop': 'Total number of residents in this geographic area.'
+  }
+  return shortDescriptions[factorId] || 'Environmental indicator for this area.'
 }
 </script>
 
@@ -359,9 +376,33 @@ function clearFilter() {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
   min-width: 0;
 }
+
+.variable-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.variable-description {
+  font-size: 12px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.variable-status {
+  margin-top: 2px;
+}
+
+.status-indicator {
+  font-size: 11px;
+  color: #2563eb;
+  font-weight: 500;
+}
+
 
 .variable-name {
   font-size: 14px;
