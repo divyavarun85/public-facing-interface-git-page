@@ -12,6 +12,46 @@ export default {
   },
   async viteFinal(config) {
     config.define = { ...(config.define ?? {}), 'process.env': {} };
+    
+    // Fix maplibre-gl bundling issue - ensure it's included and not externalized
+    config.optimizeDeps = {
+      ...config.optimizeDeps,
+      include: ['maplibre-gl', '@turf/turf', 'vue'],
+      exclude: [],
+    };
+    
+    // Ensure maplibre-gl is bundled properly (not externalized)
+    config.ssr = config.ssr || {};
+    if (config.ssr.noExternal === undefined) {
+      config.ssr.noExternal = [];
+    }
+    if (Array.isArray(config.ssr.noExternal)) {
+      config.ssr.noExternal.push('maplibre-gl');
+    }
+    
+    // Explicitly prevent maplibre-gl from being externalized in build
+    config.build = config.build || {};
+    config.build.rollupOptions = config.build.rollupOptions || {};
+    
+    // Override external to never externalize maplibre-gl
+    const originalExternal = config.build.rollupOptions.external;
+    config.build.rollupOptions.external = (id) => {
+      // Never externalize maplibre-gl
+      if (id === 'maplibre-gl' || id.includes('maplibre-gl')) {
+        return false;
+      }
+      // Use original external function if it exists
+      if (originalExternal) {
+        if (typeof originalExternal === 'function') {
+          return originalExternal(id);
+        }
+        if (Array.isArray(originalExternal)) {
+          return originalExternal.includes(id);
+        }
+      }
+      return false;
+    };
+    
     return config;
   },
 };
