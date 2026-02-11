@@ -35,6 +35,12 @@ export function generateMockHexFC(cellKm = 75, seed = 42) {
     let EPL_PM = clamp(((E_PM - 3.5) / (14 - 3.5)) + 0.1 * n2, 0, 1)
     EPL_PM = Number(EPL_PM.toFixed(4))
 
+    // Ozone (ppm) ~ similar spatial pattern to PM, different scale
+    let E_OZONE = 0.02 + 0.4 * ((-lon - 70) / 55) + 0.3 * Math.cos((lat + lon) / 10) + 0.2 * n1
+    E_OZONE = clamp(Number(E_OZONE.toFixed(2)), 0, 2.5)
+    let EPL_OZONE = clamp(((E_OZONE - 0) / 2.5) + 0.1 * n2, 0, 1)
+    EPL_OZONE = Number(EPL_OZONE.toFixed(4))
+
     // Asthma prevalence (%) ~ correlate with PM + humidity band
     let EP_ASTHMA = 5.5 + 0.8 * E_PM + 2 * Math.sin((lat + 20) / 7) + 1.2 * n2
     EP_ASTHMA = clamp(Number(EP_ASTHMA.toFixed(1)), 4, 20)
@@ -56,9 +62,11 @@ export function generateMockHexFC(cellKm = 75, seed = 42) {
     E_TOTPOP = clamp(Number(E_TOTPOP.toFixed(1)), 10, 1200)
 
     f.properties = {
-      hex_id: i,        // synthetic id
+      hex_id: i,
       E_PM,
       EPL_PM,
+      E_OZONE,
+      EPL_OZONE,
       EP_ASTHMA,
       SPL_SVM,
       E_TOTPOP

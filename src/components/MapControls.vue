@@ -184,11 +184,13 @@ function clearFilter() {
 
 function getFactorShortDescription(factorId) {
   const shortDescriptions = {
-    'pm25': 'Air quality based on particulate matter concentration.',
-    'asthma': 'Percentage of population with current asthma diagnosis.',
-    'pm25pct': 'Percentile ranking of air pollution levels compared to national data.',
-    'svm': 'Community vulnerability to environmental and social stressors.',
-    'pop': 'Total number of residents in this geographic area.'
+    'pm25': 'Air quality, fine particulate matter (PM2.5) concentration (E_PM).',
+    'asthma': 'Asthma prevalence in the population (EP_ASTHMA).',
+    'pm25pct': 'Percentile ranking of air pollution (EPL_PM).',
+    'ozone': 'Ground-level ozone concentration (E_OZONE).',
+    'ozonepct': 'Percentile ranking of ozone (EPL_OZONE).',
+    'svm': 'Social Vulnerability Index (SPL_SVM).',
+    'pop': 'Total population count in this hex (E_TOTPOP).'
   }
   return shortDescriptions[factorId] || 'Environmental indicator for this area.'
 }

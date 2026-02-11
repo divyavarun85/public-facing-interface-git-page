@@ -186,33 +186,22 @@ watch(
     }
 )
 
-/** factor catalog (labels + mapping to CHEL keys) */
+/** factor catalog (labels + mapping to real CHEL GeoJSON property names) */
 const catalog = [
-    {
-        id: 'pm25', name: 'Air Pollution', unit: 'μg/m³', key: 'E_PM',
-        // Grayscale: Light gray (low PM2.5) → Dark gray (high PM2.5)
-        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
-    },
-    {
-        id: 'asthma', name: 'Asthma Rates', unit: '', key: 'EP_ASTHMA',
-        // Grayscale: Light gray (low rates) → Dark gray (high rates)
-        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
-    },
-    {
-        id: 'pm25pct', name: 'Air Pollution Percentile', unit: '', key: 'EPL_PM',
-        // Grayscale: Light gray (low ranking) → Dark gray (high ranking)
-        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
-    },
-    {
-        id: 'svm', name: 'Social Vulnerability', unit: '', key: 'SPL_SVM',
-        // Grayscale: Light gray (low vulnerability) → Dark gray (high vulnerability)
-        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
-    },
-    {
-        id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
-        // Grayscale: Light gray (low population) → Dark gray (high population)
-        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525']
-    },
+    { id: 'pm25', name: 'Air Pollution (PM2.5)', unit: 'μg/m³', key: 'E_PM',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'asthma', name: 'Asthma Rates', unit: '%', key: 'EP_ASTHMA',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'pm25pct', name: 'Air Pollution Percentile', unit: '', key: 'EPL_PM',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'ozone', name: 'Ozone', unit: 'ppm', key: 'E_OZONE',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'ozonepct', name: 'Ozone Percentile', unit: '', key: 'EPL_OZONE',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'svm', name: 'Social Vulnerability', unit: '', key: 'SPL_SVM',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
+    { id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
+        palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
 ]
 // factors shown = only those whose key exists & has stats
 const factors = computed(() =>
@@ -346,10 +335,13 @@ const tooltipFields = computed(() => {
     // Check if a variable is selected
     const isVariableSelected = metric.valueField && metric.name !== 'No variable selected'
 
-    // All available fields
+    // All available fields (real CHEL GeoJSON property names)
     const allFields = [
         makeField('Population', 'E_TOTPOP', 0),
-        makeField('Air Pollution Ranking', 'EPL_PM', 2),
+        makeField('Air Pollution (PM2.5)', 'E_PM', 2, 'μg/m³'),
+        makeField('Air Pollution Percentile', 'EPL_PM', 2),
+        makeField('Ozone', 'E_OZONE', 2, 'ppm'),
+        makeField('Ozone Percentile', 'EPL_OZONE', 2),
         makeField('Asthma Rate', 'EP_ASTHMA', 1),
         makeField('Social Vulnerability', 'SPL_SVM', 2)
     ]

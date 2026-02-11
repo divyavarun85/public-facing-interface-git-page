@@ -35,7 +35,7 @@
                     <div v-for="factor in factors" :key="factor.id" class="factor-item">
                         <h4 class="factor-name">{{ factor.name }}</h4>
                         <p class="factor-description">
-                            {{ getFactorDescription(factor) }} The value for this hexagon is
+                            {{ getFactorDescription(factor) }} — The value for this hexagon is
                             <strong>{{ formatValue(factor) }}</strong>, which indicates a
                             <strong>{{ getRankLabel(factor) }}</strong> level compared to other areas in the dataset.
                             {{ getFactorContext(factor) }}
@@ -108,10 +108,10 @@ function formatValue(factor) {
     const value = properties.value[factor.valueField || factor.key]
     if (value === null || value === undefined || Number.isNaN(value)) return 'N/A'
 
-    // Use appropriate digits based on factor type
+    // Use appropriate digits based on factor type (CHEL fields)
     let digits = 2
-    if (factor.id === 'pop') digits = 0
-    else if (factor.id === 'asthma') digits = 1
+    if (factor.id === 'pop' || factor.valueField === 'E_TOTPOP') digits = 0
+    else if (factor.id === 'asthma' || factor.valueField === 'EP_ASTHMA') digits = 1
 
     return formatNumber(value, digits)
 }
@@ -182,13 +182,15 @@ function getRankDescription() {
 
 function getFactorDescription(factor) {
     const descriptions = {
-        'pm25': 'Air Pollution measures the concentration of fine particulate matter (PM2.5) in the air. Lower values indicate better air quality.',
-        'asthma': 'Asthma Rates represent the prevalence of asthma in the population, which can be influenced by both environmental and demographic factors.',
-        'pm25pct': 'Air Pollution Percentile shows where this area ranks compared to all other areas in the dataset (0-1 scale, where lower values indicate better air quality).',
-        'svm': 'Social Vulnerability Index measures the susceptibility of communities to external stresses, combining socioeconomic status, household composition, and other factors.',
-        'pop': 'Population indicates the number of residents in this geographic area, which helps contextualize the scale of environmental impacts.'
+        'pm25': 'E_PM: Fine particulate matter (PM2.5) concentration from the CHEL 2022 dataset. Lower values indicate better air quality.',
+        'asthma': 'EP_ASTHMA: Asthma prevalence in the population, from the CHEL 2022 dataset.',
+        'pm25pct': 'EPL_PM: Percentile ranking of air pollution (0–1), from the CHEL 2022 dataset.',
+        'ozone': 'E_OZONE: Ozone concentration from the CHEL 2022 dataset.',
+        'ozonepct': 'EPL_OZONE: Percentile ranking of ozone (0–1), from the CHEL 2022 dataset.',
+        'svm': 'SPL_SVM: Social Vulnerability Index from the CHEL 2022 dataset.',
+        'pop': 'E_TOTPOP: Total population in this hex, from the CHEL 2022 dataset.'
     }
-    return descriptions[factor.id] || `${factor.name} is an environmental indicator that measures specific characteristics of this geographic area.`
+    return descriptions[factor.id] || `${factor.name} is an environmental indicator from the CHEL 2022 dataset.`
 }
 
 function getFactorContext(factor) {
