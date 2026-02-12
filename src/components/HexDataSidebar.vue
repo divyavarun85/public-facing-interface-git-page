@@ -46,26 +46,17 @@
                         <h4 class="factor-name">{{ factor.name }}</h4>
                         <span class="factor-tag" :style="{ backgroundColor: getRankStyle(getRankLabel(factor)).tagBg, color: getRankStyle(getRankLabel(factor)).tagFg }">{{ getRankLabel(factor) }}</span>
                     </div>
-                    <p class="factor-variable">{{ factor.key || factor.valueField }}</p>
                     <p class="factor-value">{{ formatValue(factor) }}<span class="factor-unit">{{ factor.unit }}</span></p>
                     <div class="percentile-block">
                         <div class="percentile-bar">
                             <div class="percentile-fill" :style="{ width: getPercentile(factor) + '%', backgroundColor: getRankStyle(getRankLabel(factor)).tagBg }"></div>
                             <div class="percentile-marker" :style="{ left: getPercentile(factor) + '%' }"></div>
                         </div>
-                        <div class="percentile-labels">
-                            <span>0</span>
-                            <span>50</span>
-                            <span>100</span>
-                        </div>
                         <p class="percentile-value">{{ getPercentileOrdinal(factor) }} percentile</p>
                     </div>
                     <p class="factor-description">
-                        <span class="factor-description-line1">
-                            <span class="factor-bullet" :style="{ backgroundColor: getRankStyle(getRankLabel(factor)).tagBg }"></span>
-                            This area shows a <strong>{{ getRankLabel(factor).toLowerCase() }}</strong> level compared to other areas.
-                        </span>
-                        <span class="factor-description-line2">{{ getFactorShortDescription(factor) }}</span>
+                        <span class="factor-bullet" :style="{ backgroundColor: getRankStyle(getRankLabel(factor)).tagBg }"></span>
+                        <strong>{{ getRankLabel(factor).toLowerCase() }}</strong> level compared to other areas.
                     </p>
                 </div>
             </div>
@@ -378,10 +369,10 @@ function getFactorShortDescription(factor) {
     flex-shrink: 0;
     background: #1e4f86;
     color: #fff;
-    padding: 20px 24px 24px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
 }
 
 .header-top {
@@ -403,15 +394,15 @@ function getFactorShortDescription(factor) {
 
 .location-title {
     margin: 0;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 700;
     color: #fff;
     letter-spacing: -0.02em;
 }
 
 .location-subtitle {
-    margin: 4px 0 0 0;
-    font-size: 13px;
+    margin: 2px 0 0 0;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.85);
 }
 
@@ -433,11 +424,11 @@ function getFactorShortDescription(factor) {
 
 .overall-rating-card {
     background: rgba(255, 255, 255, 0.15);
-    border-radius: 10px;
-    padding: 14px 16px;
+    border-radius: 8px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .overall-rating-card.rating-favorable {
@@ -453,10 +444,10 @@ function getFactorShortDescription(factor) {
 }
 
 .rating-definition {
-    font-size: 12px;
+    font-size: 11px;
     color: rgba(255, 255, 255, 0.9);
-    margin: 6px 0 10px 0;
-    line-height: 1.4;
+    margin: 2px 0 6px 0;
+    line-height: 1.35;
 }
 
 .rating-row {
@@ -467,7 +458,7 @@ function getFactorShortDescription(factor) {
 }
 
 .rating-value {
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 700;
     color: #fff;
 }
@@ -488,23 +479,23 @@ function getFactorShortDescription(factor) {
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding: 24px;
+    padding: 16px 20px;
     background: #fff;
 }
 
 .intro-text {
-    font-size: 14px;
+    font-size: 13px;
     color: #6b7280;
-    margin: 0 0 24px 0;
-    line-height: 1.5;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
 }
 
 .data-section {
-    margin-bottom: 28px;
+    margin-bottom: 16px;
 }
 
 .data-sources {
-    margin-top: 24px;
+    margin-top: 16px;
 }
 
 .data-sources .description-text {
@@ -512,18 +503,18 @@ function getFactorShortDescription(factor) {
 }
 
 .section-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #374151;
-    margin: 0 0 16px 0;
+    margin: 0 0 10px 0;
     letter-spacing: 0.02em;
 }
 
 .description-text {
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.5;
     color: #374151;
-    margin: 0 0 12px 0;
+    margin: 0 0 8px 0;
 }
 
 .description-text:last-child {
@@ -538,12 +529,12 @@ function getFactorShortDescription(factor) {
 .factors-list {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 8px;
 }
 
 .factor-card {
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 8px;
+    padding: 10px 12px;
     border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
@@ -551,56 +542,50 @@ function getFactorShortDescription(factor) {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 2px;
 }
 
 .factor-name {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #111827;
     margin: 0;
 }
 
 .factor-tag {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
     flex-shrink: 0;
 }
 
-.factor-variable {
-    font-size: 12px;
-    color: #6b7280;
-    margin: 0 0 4px 0;
-}
-
 .factor-value {
-    font-size: 24px;
+    font-size: 18px;
     font-weight: 700;
     color: #111827;
-    margin: 0 0 12px 0;
+    margin: 0 0 6px 0;
 }
 
 .factor-unit {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: #6b7280;
     margin-left: 4px;
 }
 
 .percentile-block {
-    margin-bottom: 12px;
+    margin-bottom: 6px;
 }
 
 .percentile-bar {
-    height: 8px;
+    height: 6px;
     background: #e5e7eb;
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
     position: relative;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
 }
 
 .percentile-fill {
@@ -611,47 +596,34 @@ function getFactorShortDescription(factor) {
 
 .percentile-marker {
     position: absolute;
-    top: -2px;
+    top: -1px;
     width: 2px;
-    height: 12px;
+    height: 8px;
     background: #374151;
     border-radius: 1px;
     transform: translateX(-50%);
 }
 
-.percentile-labels {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: #9ca3af;
-    margin-bottom: 2px;
-}
-
 .percentile-value {
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
     margin: 0;
 }
 
 .factor-description {
-    font-size: 13px;
-    line-height: 1.55;
+    font-size: 11px;
+    line-height: 1.4;
     color: #374151;
-}
-
-.factor-description-line1 {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    margin: 0;
 }
 
 .factor-bullet {
-    width: 6px;
-    height: 6px;
+    display: inline-block;
+    width: 4px;
+    height: 4px;
     border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 6px;
+    margin-right: 4px;
+    vertical-align: middle;
 }
 
 .factor-description strong {
