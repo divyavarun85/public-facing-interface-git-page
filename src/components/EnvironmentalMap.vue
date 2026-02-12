@@ -200,7 +200,7 @@ const catalog = [
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
     { id: 'svm', name: 'Social Vulnerability', unit: '', key: 'SPL_SVM',
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
-    { id: 'pop', name: 'Population', unit: 'people', key: 'E_TOTPOP',
+    { id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
 ]
 // factors shown = only those whose key exists & has stats

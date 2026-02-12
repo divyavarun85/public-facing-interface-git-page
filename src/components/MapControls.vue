@@ -99,17 +99,17 @@
       </div>
       <div v-if="legendBins.length > 0" class="legend-ribbon" :style="{ background: ribbonGradient }"
         aria-hidden="true"></div>
-      <p v-if="legendBins.length > 0 && (unit || activeFactorName)" class="legend-values-note">
-        <span v-if="unit">Values in {{ unit }}.</span>
+      <p v-if="legendBins.length > 0 && (legendUnit || activeFactorName)" class="legend-values-note">
+        <span v-if="legendUnit">Values in {{ legendUnit }}.</span>
         <span v-else>Values for {{ activeFactorName }} (same scale as the variable above).</span>
       </p>
       <div v-if="legendBins.length > 0" class="legend-scale" role="list">
         <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
-          :aria-label="`Filter to ${bin.label || 'this level'}: ${bin.range}${unit ? ' ' + unit : ''}`" @click="onLegendClick(i)">
+          :aria-label="`Filter to ${bin.label || 'this level'}: ${bin.range}${legendUnit ? ' ' + legendUnit : ''}`" @click="onLegendClick(i)">
           <span class="legend-swatch" :style="{ backgroundColor: bin.color }" />
           <span class="legend-text">
             <span class="legend-range">{{ bin.label }}</span>
-            <span class="legend-brackets">{{ bin.range }}{{ unit ? ' ' + unit : '' }}</span>
+            <span class="legend-brackets">{{ bin.range }}{{ legendUnit ? ' ' + legendUnit : '' }}</span>
           </span>
         </button>
       </div>
@@ -155,6 +155,11 @@ const legendTooltipStyle = computed(() => ({
   top: `${legendTooltipPosition.value.top}px`,
   left: `${legendTooltipPosition.value.left}px`
 }))
+
+/** Show "people" in legend only when Population is selected; factor cards keep their own unit (no "people" there) */
+const legendUnit = computed(() =>
+  props.activeFactorName === 'Population' ? 'people' : props.unit
+)
 
 function updateLegendTooltipPosition() {
   nextTick(() => {
