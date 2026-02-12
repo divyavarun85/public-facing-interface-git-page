@@ -99,6 +99,10 @@
       </div>
       <div v-if="legendBins.length > 0" class="legend-ribbon" :style="{ background: ribbonGradient }"
         aria-hidden="true"></div>
+      <p v-if="legendBins.length > 0 && (unit || activeFactorName)" class="legend-values-note">
+        <span v-if="unit">Values in {{ unit }}.</span>
+        <span v-else>Values for {{ activeFactorName }} (same scale as the variable above).</span>
+      </p>
       <div v-if="legendBins.length > 0" class="legend-scale" role="list">
         <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
           :aria-label="`Filter to ${bin.label || 'this level'}: ${bin.range}${unit ? ' ' + unit : ''}`" @click="onLegendClick(i)">
@@ -129,6 +133,7 @@ const props = defineProps({
   legendBins: { type: Array, required: true },   // [{color, range, label}]
   palette: { type: Array, default: () => [] },   // same colors used on the map
   unit: { type: String, default: '' },
+  activeFactorName: { type: String, default: '' },
   overlay: { type: Boolean, default: false },
   noDataColor: { type: String, default: '#b8b8b8' },
   selectedRange: { type: [Array, null], default: null }, // [min,max] or null
@@ -621,6 +626,13 @@ function getFactorShortDescription(factorId) {
   height: 12px;
   border-radius: 999px;
   border: 1px solid rgba(148, 163, 184, 0.4);
+}
+
+.legend-values-note {
+  margin: 6px 0 0 0;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.4;
 }
 
 .legend-scale {

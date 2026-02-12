@@ -30,7 +30,7 @@
             </button>
             <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
             <MapControls :class="{ 'sidebar-open': sidebarOpen }" :factors="factors" :selected-factor="selectedFactor"
-                :legend-bins="legendBins" :palette="active.colors" :unit="active.unit" :selected-range="currentRange"
+                :legend-bins="legendBins" :palette="active.colors" :unit="active.unit" :active-factor-name="active.name" :selected-range="currentRange"
                 :pin-error-message="pinErrorMessage" :pin-loading="pinLoading" @factor-change="onFactorChange"
                 @range-change="onRangeChange" @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
                 @close-sidebar="sidebarOpen = false" />
@@ -200,7 +200,7 @@ const catalog = [
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
     { id: 'svm', name: 'Social Vulnerability', unit: '', key: 'SPL_SVM',
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
-    { id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
+    { id: 'pop', name: 'Population', unit: 'people', key: 'E_TOTPOP',
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
 ]
 // factors shown = only those whose key exists & has stats
@@ -230,12 +230,15 @@ const active = computed(() => {
 
 /** legend bins for the sidebar */
 const legendBins = computed(() => {
-    const { breaks, colors } = active.value
+    const { breaks, colors, valueField } = active.value
     // If no factor is selected, return empty legend
     if (!breaks || breaks.length === 0) {
         return []
     }
-    const fmt = n => (Math.abs(n) % 1 === 0 ? n : +n.toFixed(1))
+    const isPopulation = valueField === 'E_TOTPOP'
+    const fmt = n => isPopulation
+        ? Math.round(n).toLocaleString('en-US')
+        : (Math.abs(n) % 1 === 0 ? n : +n.toFixed(1))
     const bins = []
     bins.push({ color: colors[0], range: `≤ ${fmt(breaks[0])}`, label: 'Very Low' })
     for (let i = 1; i < breaks.length; i++) {
