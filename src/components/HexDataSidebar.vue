@@ -81,7 +81,7 @@
             <div class="data-section data-sources">
                 <h3 class="section-title">Data Sources</h3>
                 <p class="description-text">
-                    Data from the CHEL 2022 (Climate and Health Equity Index) dataset. Values may be estimates or interpolations.
+                    Data from the CHEL 2022 (Climate and Health Equity Index) dataset; 2022 is the data reference year. Values may be estimates or interpolations.
                 </p>
             </div>
         </div>
