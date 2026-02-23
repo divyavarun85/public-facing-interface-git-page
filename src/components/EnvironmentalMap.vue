@@ -35,9 +35,9 @@
             </button>
             <div v-if="sidebarOpen" class="sidebar-overlay" @click="sidebarOpen = false"></div>
             <MapControls :class="{ 'sidebar-open': sidebarOpen }" :factors="factors" :selected-factor="selectedFactor"
-                :legend-bins="legendBins" :palette="active.colors" :unit="active.unit" :active-factor-name="active.name" :selected-range="currentRange"
+                :legend-bins="legendBins" :palette="active.colors" :unit="active.unit" :active-factor-name="active.name"
                 :pin-error-message="pinErrorMessage" :pin-loading="pinLoading" @factor-change="onFactorChange"
-                @range-change="onRangeChange" @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
+                @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
                 @close-sidebar="sidebarOpen = false" @download="handleDownload" />
             <div class="map-wrapper">
 
@@ -278,48 +278,11 @@ const legendBins = computed(() => {
 })
 
 /** filtering */
-const currentRange = ref(null) // [min,max] or null
-
-const layerFilter = computed(() => {
-    const r = currentRange.value
-    const field = active.value.valueField
-    if (!r) return true
-
-    if (r[0] === 'first') {
-        const max = r[1]
-        return ['<', ['get', field], max]
-    }
-
-    if (r[0] === 'last') {
-        const min = r[1]
-        return ['>=', ['get', field], min]
-    }
-
-    const [min, max, mode] = r
-    if (mode === 'exclusive') {
-        return ['all',
-            ['>=', ['get', field], min],
-            ['<', ['get', field], max]
-        ]
-    }
-    // fallback (inclusive upper if you ever use it)
-    return ['all',
-        ['>=', ['get', field], min],
-        ['<=', ['get', field], max]
-    ]
-})
+const layerFilter = true // no range filtering; legend is display-only
 
 function onFactorChange(id) {
     selectedFactor.value = id;
-    currentRange.value = null;
     // Close sidebar on mobile when selecting a factor so user can see the map update
-    if (window.innerWidth <= 768) {
-        sidebarOpen.value = false
-    }
-}
-function onRangeChange(range) {
-    currentRange.value = range;
-    // Close sidebar on mobile when selecting a legend range so user can see the map update
     if (window.innerWidth <= 768) {
         sidebarOpen.value = false
     }

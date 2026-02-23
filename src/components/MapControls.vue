@@ -22,7 +22,7 @@
         <ul>
           <li>Enter a ZIP code or address to zoom directly to that area.</li>
           <li>Click an environmental factor below to swap between indicators on the map.</li>
-          <li>Click legend bands to focus specific ranges.</li>
+          <li>Select a factor to see how the map colors correspond to value ranges.</li>
         </ul>
       </section>
     </transition>
@@ -79,27 +79,24 @@
         </div>
       </div>
 
-      <p v-if="legendBins.length > 0 && (legendUnit || activeFactorName)" class="legend-values-note">
-        <span v-if="legendUnit">Values in {{ legendUnit }}.</span>
-        <span v-else>Values for {{ activeFactorName }} (same scale as the variable above).</span>
-      </p>
-      <div v-if="legendBins.length > 0" class="legend-scale" role="list">
-        <button v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-item" type="button"
-          :aria-label="`Filter to ${bin.label || 'this level'}: ${bin.range}${legendUnit ? ' ' + legendUnit : ''}`" @click="onLegendClick(i)">
-          <span class="legend-swatch" :style="{ backgroundColor: bin.color }" />
-          <span class="legend-text">
-            <span class="legend-range">{{ bin.label }}</span>
-            <span class="legend-brackets">{{ bin.range }}{{ legendUnit ? ' ' + legendUnit : '' }}</span>
-          </span>
-        </button>
-      </div>
-
-      <transition name="fade">
-        <div v-if="selectedFilterLabel" class="filter-chip">
-          <span>Filter: {{ selectedFilterLabel }}</span>
-          <button class="chip-x" @click="clearFilter" aria-label="Clear filter">✕</button>
+      <div v-if="legendBins.length > 0 && activeFactorName" class="legend-bar-wrap" :aria-label="`Map color scale for ${activeFactorName}`">
+        <h4 class="legend-bar-title">{{ activeFactorName }}</h4>
+        <div class="legend-bar-labels">
+          <span>Low</span>
+          <span>High</span>
         </div>
-      </transition>
+        <div class="legend-bar">
+          <div class="legend-bar-segment legend-bar-nodata" :style="{ background: noDataStripes }" title="No data" />
+          <div v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-bar-segment"
+            :style="{ backgroundColor: bin.color }" :title="bin.range" />
+        </div>
+        <div class="legend-bar-ranges">
+          <span class="legend-bar-range legend-bar-range--nodata">No Data</span>
+          <span v-for="(bin, i) in legendBins" :key="`${bin.range}-${i}`" class="legend-bar-range">
+            {{ bin.range }}{{ legendUnit ? ' ' + legendUnit : '' }}
+          </span>
+        </div>
+      </div>
     </section>
     </div>
     <div class="sidebar-footer">
@@ -125,11 +122,10 @@ const props = defineProps({
   activeFactorName: { type: String, default: '' },
   overlay: { type: Boolean, default: false },
   noDataColor: { type: String, default: '#b8b8b8' },
-  selectedRange: { type: [Array, null], default: null }, // [min,max] or null
   pinErrorMessage: { type: String, default: '' },
   pinLoading: { type: Boolean, default: false }
 })
-const emit = defineEmits(['factor-change', 'range-change', 'legend-bin-click', 'toggle-overlay', 'pin-search', 'close-sidebar', 'download'])
+const emit = defineEmits(['factor-change', 'legend-bin-click', 'toggle-overlay', 'pin-search', 'close-sidebar', 'download'])
 
 const showHelp = ref(false)
 const showLegendTooltip = ref(false)
@@ -187,7 +183,6 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeLegendTooltipOnClickOutside)
 })
-const selectedFilterLabel = ref('')
 
 const selectedFactorData = computed(() =>
   props.factors.find(f => f.id === props.selectedFactor) || props.factors[0]
@@ -197,39 +192,13 @@ const ribbonGradient = computed(() =>
   props.palette?.length ? `linear-gradient(to right, ${props.palette.join(',')})` : 'transparent'
 )
 
-const showNoData = computed(() => !!props.noDataColor)
-
-watch(() => props.selectedRange, value => {
-  if (!value) selectedFilterLabel.value = ''
+const noDataStripes = computed(() => {
+  const c = props.noDataColor || '#b8b8b8'
+  const dark = '#9ca3af'
+  return `repeating-linear-gradient(-45deg, ${c}, ${c} 3px, ${dark} 3px, ${dark} 6px)`
 })
 
-function onLegendClick(i) {
-  const bin = props.legendBins[i]
-  selectedFilterLabel.value = bin?.label || ''
-  const text = String(props.legendBins[i]?.range || '')
-  const nums = text.match(/[+-]?\d+(\.\d+)?/g)?.map(Number) || []
-
-  // First bin label like "≤ b0" -> filter v < b0
-  if (/≤/.test(text) && nums.length === 1) {
-    emit('range-change', ['first', nums[0]])
-    return
-  }
-
-  // Last bin label like "> bN"   -> filter v >= bN
-  if (/>/.test(text) && nums.length === 1) {
-    emit('range-change', ['last', nums[0]])
-    return
-  }
-
-  // Middle bin label "a–b"       -> filter a <= v < b
-  if (nums.length === 2) {
-    emit('range-change', [nums[0], nums[1], 'exclusive'])
-    return
-  }
-
-  selectedFilterLabel.value = ''
-  emit('range-change', null)
-}
+const showNoData = computed(() => !!props.noDataColor)
 
 function submitPin() {
   const query = pinQuery.value.trim()
@@ -240,25 +209,6 @@ function submitPin() {
   pinErrorLocal.value = ''
   emit('pin-search', query)
 }
-function intersectsSelected(i) {
-  if (!props.selectedRange) return false
-  const [lo, hi] = props.selectedRange
-  const text = String(props.legendBins[i]?.range || '')
-  const nums = text.match(/[+-]?\d+(\.\d+)?/g)?.map(Number) || []
-  let a = -Infinity, b = Infinity
-  if (/≤/.test(text) && nums.length === 1) { a = -Infinity; b = nums[0] }
-  else if (/>/.test(text) && nums.length === 1) { a = nums[0]; b = Infinity }
-  else if (nums.length === 2) { a = nums[0]; b = nums[1] }
-  return Math.max(a, lo) <= Math.min(b, hi)
-}
-
-function fmt(n) { return (typeof n === 'number' && isFinite(n)) ? (Math.abs(n) % 1 ? n.toFixed(1) : String(n)) : '—' }
-
-function clearFilter() {
-  selectedFilterLabel.value = ''
-  emit('range-change', null)
-}
-
 function getLearnMoreUrl(factorId) {
   const urls = {
     'svm': 'https://www.atsdr.cdc.gov/place-health/php/svi/index.html',
@@ -664,65 +614,60 @@ function getFactorShortDescription(factorId) {
   border: 1px solid rgba(148, 163, 184, 0.4);
 }
 
-.legend-values-note {
-  margin: 4px 0 0 0;
+.legend-bar-wrap {
+  margin-top: 12px;
+}
+
+.legend-bar-title {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.legend-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
   font-size: 11px;
   color: #64748b;
-  line-height: 1.4;
 }
 
-.legend-scale {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 6px;
-}
-
-.legend-item {
+.legend-bar {
   display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 6px;
-  padding: 6px 8px;
-  background: #f8fafc;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s ease;
   width: 100%;
-}
-
-.legend-item:hover {
-  border-color: #cbd5f5;
-  background: #eef2ff;
-}
-
-.legend-swatch {
-  width: 20px;
   height: 14px;
   border-radius: 4px;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.3);
 }
 
-.legend-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: flex-start;
-  font-size: 12px;
-  color: #1f2937;
+.legend-bar-segment {
   flex: 1;
   min-width: 0;
 }
 
-.legend-range {
-  font-weight: 500;
+.legend-bar-nodata {
+  flex: 0 0 12%;
+  min-width: 24px;
 }
 
-.legend-brackets {
-  font-size: 11px;
+.legend-bar-ranges {
+  display: flex;
+  margin-top: 6px;
+  font-size: 10px;
   color: #64748b;
+  gap: 2px;
+}
+
+.legend-bar-range {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+}
+
+.legend-bar-range--nodata {
+  flex: 0 0 12%;
 }
 
 .legend-sub {
