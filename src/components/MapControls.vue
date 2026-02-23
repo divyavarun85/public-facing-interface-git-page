@@ -78,27 +78,6 @@
         </div>
       </div>
 
-      <div v-if="legendBins.length > 0" class="legend-header">
-        <span class="legend-title">Scale</span>
-        <span class="legend-info-wrap">
-          <button ref="legendInfoBtnRef" type="button" class="legend-info-btn" aria-label="How is the scale calculated?"
-            :title="legendTooltipText" :aria-expanded="showLegendTooltip" aria-haspopup="true"
-            @click.prevent.stop="toggleLegendTooltip">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <path d="M12 16v-4M12 8h.01"></path>
-            </svg>
-          </button>
-          <Teleport to="body">
-            <div v-if="showLegendTooltip" class="legend-tooltip-portal" role="tooltip"
-              :style="legendTooltipStyle" @click.stop>
-              {{ legendTooltipText }}
-            </div>
-          </Teleport>
-        </span>
-      </div>
-      <div v-if="legendBins.length > 0" class="legend-ribbon" :style="{ background: ribbonGradient }"
-        aria-hidden="true"></div>
       <p v-if="legendBins.length > 0 && (legendUnit || activeFactorName)" class="legend-values-note">
         <span v-if="legendUnit">Values in {{ legendUnit }}.</span>
         <span v-else>Values for {{ activeFactorName }} (same scale as the variable above).</span>
