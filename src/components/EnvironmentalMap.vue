@@ -290,8 +290,32 @@ function onFactorChange(id) {
 function handleHexClick(feature) { selectedHexFeature.value = feature }
 
 function handleDownload() {
-    // Placeholder for data download; implement CSV/GeoJSON export as needed
-    console.log('Download requested')
+    const data = dataObj.value
+    if (!data?.features?.length) {
+        console.warn('No data available to download')
+        return
+    }
+    const feats = data.features
+    // Collect all property keys from features
+    const keys = new Set()
+    feats.forEach(f => Object.keys(f.properties || {}).forEach(k => keys.add(k)))
+    const headers = ['hex_id', ...Array.from(keys).filter(k => k !== 'hex_id').sort()]
+    const escape = v => {
+        const s = String(v ?? '')
+        return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s
+    }
+    const rows = feats.map(f => {
+        const p = f.properties || {}
+        return headers.map(h => escape(p[h])).join(',')
+    })
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'chel2022_environmental_data.csv'
+    a.click()
+    URL.revokeObjectURL(url)
 }
 
 const statesGeoUrl = STATES_GEO_URL
