@@ -195,11 +195,31 @@ const catalog = [
     { id: 'pop', name: 'Population', unit: '', key: 'E_TOTPOP',
         palette: ['#f5f5f5', '#cccccc', '#969696', '#636363', '#252525'] },
 ]
+// Ensure strictly ascending breaks (MapLibre step requires unique ascending stops)
+function ensureAscendingBreaks(values) {
+    const rounded = values.map(v => +v.toFixed(1))
+    const out = []
+    let last = -Infinity
+    const eps = 1e-6
+    for (const v of rounded) {
+        if (v <= last) {
+            const next = last + eps
+            out.push(next)
+            last = next
+        } else {
+            out.push(v)
+            last = v
+        }
+    }
+    return out
+}
+
 // factors shown = only those whose key exists & has stats
 const factors = computed(() =>
     catalog.filter(c => stats.value[c.key]).map(c => {
         const s = stats.value[c.key]
-        const breaks = [s.q20, s.q40, s.q60, s.q80].map(v => +v.toFixed(1))
+        const rawBreaks = [s.q20, s.q40, s.q60, s.q80]
+        const breaks = ensureAscendingBreaks(rawBreaks)
         return { id: c.id, name: c.name, unit: c.unit, valueField: c.key, breaks, colorScale: c.palette }
     })
 )
@@ -302,9 +322,48 @@ function formatNumber(value, opts = {}) {
     return formatter.format(value)
 }
 
-/** config for tooltip mini legend (min, max, palette, valueField) when factor selected */
+/** Factor-specific scale explanations and interpretation context for tooltip */
+const TOOLTIP_EXPLANATIONS = {
+    SPL_SVM: {
+        scaleExplanation: (minL, maxL) => `Possible ranks range from ${minL} (lowest vulnerability) to ${maxL} (highest vulnerability).`,
+        valueNoun: 'rank',
+        contextNoun: 'vulnerability'
+    },
+    EPL_PM: {
+        scaleExplanation: (minL, maxL) => `Values range from ${minL} (lowest pollution exposure) to ${maxL} (highest pollution exposure).`,
+        valueNoun: 'percentile',
+        contextNoun: 'air pollution exposure'
+    },
+    EPL_OZONE: {
+        scaleExplanation: (minL, maxL) => `Values range from ${minL} (lowest ozone exposure) to ${maxL} (highest ozone exposure).`,
+        valueNoun: 'percentile',
+        contextNoun: 'ozone exposure'
+    },
+    EP_ASTHMA: {
+        scaleExplanation: (minL, maxL) => `Asthma prevalence ranges from ${minL} to ${maxL} across areas.`,
+        valueNoun: 'rate',
+        contextNoun: 'asthma prevalence'
+    },
+    E_TOTPOP: {
+        scaleExplanation: (minL, maxL) => `Population counts range from ${minL} to ${maxL} across areas.`,
+        valueNoun: 'count',
+        contextNoun: 'population'
+    },
+    E_PM: {
+        scaleExplanation: (minL, maxL) => `PM2.5 levels range from ${minL} to ${maxL} across areas.`,
+        valueNoun: 'concentration',
+        contextNoun: 'air pollution'
+    },
+    E_OZONE: {
+        scaleExplanation: (minL, maxL) => `Ozone levels range from ${minL} to ${maxL} across areas.`,
+        valueNoun: 'concentration',
+        contextNoun: 'ozone exposure'
+    }
+}
+
+/** config for tooltip mini legend (min, max, palette, valueField, breaks) when factor selected */
 const tooltipLegendConfig = computed(() => {
-    const { valueField, colors, name, unit } = active.value
+    const { valueField, colors, name, unit, breaks } = active.value
     const s = valueField ? stats.value[valueField] : null
     if (!valueField || !s || s.min == null || s.max == null || !colors?.length) return null
     const isPopulation = valueField === 'E_TOTPOP'
@@ -314,16 +373,27 @@ const tooltipLegendConfig = computed(() => {
         if (isPercentile01) return Math.round(n * 100)
         return (Math.abs(n) % 1 === 0 ? n : +n.toFixed(1))
     }
+    const minL = fmt(s.min)
+    const maxL = fmt(s.max)
     const displayUnit = name === 'Population' ? 'people' : (name === 'Social Vulnerability' ? 'index' : (isPercentile01 ? '%' : unit || ''))
+    const exp = TOOLTIP_EXPLANATIONS[valueField] || {
+        scaleExplanation: (a, b) => `Values range from ${a} to ${b} across areas.`,
+        valueNoun: 'value',
+        contextNoun: name.toLowerCase()
+    }
     return {
         min: s.min,
         max: s.max,
-        minLabel: fmt(s.min),
-        maxLabel: fmt(s.max),
+        minLabel: minL,
+        maxLabel: maxL,
         palette: colors,
         valueField,
         factorName: name,
-        unit: displayUnit
+        unit: displayUnit,
+        breaks: Array.isArray(breaks) ? breaks : [],
+        scaleExplanation: typeof exp.scaleExplanation === 'function' ? exp.scaleExplanation(minL, maxL) : exp.scaleExplanation,
+        valueNoun: exp.valueNoun,
+        contextNoun: exp.contextNoun
     }
 })
 

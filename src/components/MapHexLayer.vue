@@ -170,6 +170,7 @@ function getTooltipHtml(feature) {
       .map-tooltip-legend-bar { position: relative; height: 8px; border-radius: 4px; margin-bottom: 6px; }
       .map-tooltip-legend-marker { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 50%; background: #1e293b; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.2); pointer-events: none; }
       .map-tooltip-legend-labels { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; font-variant-numeric: tabular-nums; }
+      .map-tooltip-legend-hint { margin-top: 8px; font-size: 11px; color: #94a3b8; line-height: 1.4; }
       @media (max-width: 480px) {
         .map-tooltip { min-width: 180px; max-width: 85vw; font-size: 12px; }
         .map-tooltip-header { font-size: 13px; }
@@ -192,17 +193,40 @@ function getTooltipHtml(feature) {
       html += '</div>'
     }
 
-    // Mini legend: full range with marker showing where value falls
+    // Mini legend: use same percentile-based categories as sidebar (breaks = q20,q40,q60,q80)
     if (hasLegend && cfg) {
       const grad = cfg.palette.map(c => c).join(', ')
+      const br = cfg.breaks || []
+      const levelFromBreaks = (val) => {
+        if (!br.length || br.length < 4) return pct < 20 ? 'very low' : pct < 40 ? 'low' : pct < 60 ? 'moderate' : pct < 80 ? 'high' : 'very high'
+        if (val <= br[0]) return 'very low'
+        if (val <= br[1]) return 'low'
+        if (val <= br[2]) return 'moderate'
+        if (val <= br[3]) return 'high'
+        return 'very high'
+      }
+      const level = levelFromBreaks(rawVal)
+      const levelLabel = level.replace(/\b\w/g, c => c.toUpperCase())
+      // Marker position: use percentile band center (bar represents ranking, not raw values)
+      const markerPct = level === 'very low' ? 10 : level === 'low' ? 30 : level === 'moderate' ? 50 : level === 'high' ? 70 : 90
+      const displayVal = dataFields.length ? (dataFields.find(df => df.label === cfg.factorName)?.value ?? rawVal) : rawVal
+      const omitActualRange = cfg.valueField === 'EPL_PM' || cfg.valueField === 'EPL_OZONE' || cfg.valueField === 'EP_ASTHMA'
+      const scaleExplanation = omitActualRange
+        ? 'The bar shows ranking across all areas (Lowest = bottom 20%, Highest = top 20%).'
+        : `The bar shows ranking across all areas (Lowest = bottom 20%, Highest = top 20%). Actual values range from ${cfg.minLabel} to ${cfg.maxLabel}${cfg.unit ? ' ' + cfg.unit : ''}.`
+      const valueInterpretation = cfg.valueNoun && cfg.contextNoun
+        ? `This area falls in the <strong>${levelLabel}</strong> category for ${cfg.contextNoun}.`
+        : ''
       html += `<div class="map-tooltip-legend">
         <div class="map-tooltip-legend-bar" style="background: linear-gradient(to right, ${grad});">
-          <div class="map-tooltip-legend-marker" style="left: ${pct}%;"></div>
+          <div class="map-tooltip-legend-marker" style="left: ${markerPct}%;"></div>
         </div>
         <div class="map-tooltip-legend-labels">
-          <span>${cfg.minLabel}${cfg.unit ? ' ' + cfg.unit : ''}</span>
-          <span>${cfg.maxLabel}${cfg.unit ? ' ' + cfg.unit : ''}</span>
+          <span>Lowest</span>
+          <span>Highest</span>
         </div>
+        ${scaleExplanation ? `<p class="map-tooltip-legend-hint">${scaleExplanation}</p>` : ''}
+        ${valueInterpretation ? `<p class="map-tooltip-legend-hint">${valueInterpretation}</p>` : ''}
       </div>`
     }
 
@@ -490,6 +514,7 @@ onMounted(() => {
     updateSelectionLayer()
 
     applyFilter()
+    updatePaint() // ensure layer reflects current factor (handles async load race)
     registerInteraction()
     if (!canvasMouseLeaveHandlerRegistered && mapEl.value) {
       mapEl.value.addEventListener('mouseleave', handleCanvasMouseLeave)
