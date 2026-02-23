@@ -44,6 +44,7 @@
         </p>
       </transition>
     </section>
+    <div class="sidebar-scroll-area">
     <section class="panel card">
       <label class="field-label">Environmental Factor</label>
       <div class="variable-list" role="list">
@@ -100,6 +101,15 @@
         </div>
       </transition>
     </section>
+    </div>
+    <div class="sidebar-footer">
+      <button type="button" class="btn-download" @click="$emit('download')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        Download Data
+      </button>
+    </div>
   </aside>
 </template>
 
@@ -119,7 +129,7 @@ const props = defineProps({
   pinErrorMessage: { type: String, default: '' },
   pinLoading: { type: Boolean, default: false }
 })
-const emit = defineEmits(['factor-change', 'range-change', 'legend-bin-click', 'toggle-overlay', 'pin-search', 'close-sidebar'])
+const emit = defineEmits(['factor-change', 'range-change', 'legend-bin-click', 'toggle-overlay', 'pin-search', 'close-sidebar', 'download'])
 
 const showHelp = ref(false)
 const showLegendTooltip = ref(false)
@@ -280,12 +290,50 @@ function getFactorShortDescription(factorId) {
   flex-shrink: 0;
   background: #ffffff;
   border-right: 1px solid #e5e7eb;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 28px 24px;
   box-shadow: inset -1px 0 0 rgba(17, 24, 39, 0.05);
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.sidebar-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-footer {
+  flex-shrink: 0;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  margin-top: auto;
+}
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.btn-download:hover {
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  transform: translateY(-1px);
 }
 
 .panel-header {
@@ -359,11 +407,11 @@ function getFactorShortDescription(factorId) {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 18px 18px 20px;
+  padding: 14px 16px 16px;
   box-shadow: 0 1px 2px rgba(148, 163, 184, 0.12);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
 }
 
 .card-muted {
@@ -404,18 +452,18 @@ function getFactorShortDescription(factorId) {
 .variable-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .variable-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  padding: 12px;
+  padding: 8px 10px;
   background: #fff;
   border: 2px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
@@ -437,8 +485,8 @@ function getFactorShortDescription(factorId) {
 .variable-preview {
   display: flex;
   gap: 2px;
-  width: 64px;
-  height: 20px;
+  width: 56px;
+  height: 16px;
   border-radius: 4px;
   overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.08);
@@ -456,31 +504,31 @@ function getFactorShortDescription(factorId) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
 .variable-header {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .variable-description {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.35;
 }
 
 .learn-more-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12px;
   color: #2563eb;
   text-decoration: none;
-  margin-top: 4px;
+  margin-top: 2px;
   transition: color 0.2s ease;
 }
 
@@ -516,7 +564,7 @@ function getFactorShortDescription(factorId) {
 
 
 .variable-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: #1f2937;
 }
@@ -617,7 +665,7 @@ function getFactorShortDescription(factorId) {
 }
 
 .legend-values-note {
-  margin: 6px 0 0 0;
+  margin: 4px 0 0 0;
   font-size: 11px;
   color: #64748b;
   line-height: 1.4;
@@ -626,15 +674,15 @@ function getFactorShortDescription(factorId) {
 .legend-scale {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
+  gap: 6px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 6px 8px;
   background: #f8fafc;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -650,8 +698,8 @@ function getFactorShortDescription(factorId) {
 }
 
 .legend-swatch {
-  width: 24px;
-  height: 16px;
+  width: 20px;
+  height: 14px;
   border-radius: 4px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   flex-shrink: 0;
@@ -1085,8 +1133,8 @@ function getFactorShortDescription(factorId) {
 }
 
 .legend-swatch {
-  width: 24px;
-  height: 16px;
+  width: 20px;
+  height: 14px;
   border: 1px solid rgba(15, 23, 42, 0.08);
   border-radius: 4px;
   flex-shrink: 0;

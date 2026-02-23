@@ -38,7 +38,7 @@
                 :legend-bins="legendBins" :palette="active.colors" :unit="active.unit" :active-factor-name="active.name" :selected-range="currentRange"
                 :pin-error-message="pinErrorMessage" :pin-loading="pinLoading" @factor-change="onFactorChange"
                 @range-change="onRangeChange" @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
-                @close-sidebar="sidebarOpen = false" />
+                @close-sidebar="sidebarOpen = false" @download="handleDownload" />
             <div class="map-wrapper">
 
                 <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :mapStyle="mapStyle"
@@ -325,6 +325,11 @@ function onRangeChange(range) {
     }
 }
 function handleHexClick(feature) { selectedHexFeature.value = feature }
+
+function handleDownload() {
+    // Placeholder for data download; implement CSV/GeoJSON export as needed
+    console.log('Download requested')
+}
 
 const statesGeoUrl = STATES_GEO_URL
 
