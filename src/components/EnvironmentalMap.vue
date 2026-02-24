@@ -613,6 +613,9 @@ async function handlePinSearch(queryInput) {
 function handleClearPin() {
     searchPinLocation.value = null
     pinErrorMessage.value = ''
+    selectedHexIds.value = []
+    selectedHexFeature.value = null
+    selectedFactor.value = '' // Reset map to no color (like initial page load)
 }
 </script>
 
