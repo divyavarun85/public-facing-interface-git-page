@@ -89,22 +89,27 @@
           </svg>
           Download Data
         </button>
-        <button type="button" class="btn-how-to" @click="showHelp = !showHelp" :aria-expanded="showHelp">
+        <button type="button" class="btn-how-to" @click="showHelp = true" :aria-expanded="showHelp">
           <span class="btn-how-to-icon">?</span>
           How to use this app
         </button>
       </div>
-      <transition name="collapse">
-        <section v-if="showHelp" class="help-panel card card-muted">
-          <div class="help-panel-header">
-            <h3>How to Use This App</h3>
-            <button type="button" class="help-panel-close" @click="showHelp = false" aria-label="Close help">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    </div>
+  </aside>
+
+  <Teleport to="body">
+    <transition name="help-modal">
+      <div v-if="showHelp" class="help-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="help-modal-title" @click.self="showHelp = false">
+        <div class="help-modal-dialog">
+          <div class="help-modal-header">
+            <h2 id="help-modal-title" class="help-modal-title">How to Use This App</h2>
+            <button type="button" class="help-modal-close" @click="showHelp = false" aria-label="Close">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 6L6 18M6 6l12 12"/>
               </svg>
             </button>
           </div>
-          <ol class="help-workflow">
+          <ol class="help-modal-workflow">
             <li><strong>Find a location:</strong> Enter a ZIP code or address and click "Locate" to zoom to that area on the map.</li>
             <li><strong>Select an environmental factor:</strong> Click an environmental factor (e.g., Air Pollution, Ozone, Asthma Rates) below to change which indicator is displayed on the map.</li>
             <li><strong>Read the legend:</strong> The legend shows how map colors correspond to value ranges. Darker colors indicate higher values; lighter colors indicate lower values.</li>
@@ -112,10 +117,10 @@
             <li><strong>Click a hexagon:</strong> Click a hexagon to open a sidebar with detailed data for that area across all factors.</li>
             <li><strong>Download data:</strong> Click "Download Data" below to export the full dataset as a CSV file.</li>
           </ol>
-        </section>
-      </transition>
-    </div>
-  </aside>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
@@ -185,11 +190,17 @@ function closeLegendTooltipOnClickOutside(e) {
   }
 }
 
+function onHelpModalKeydown(e) {
+  if (e.key === 'Escape' && showHelp.value) showHelp.value = false
+}
+
 onMounted(() => {
   document.addEventListener('click', closeLegendTooltipOnClickOutside)
+  document.addEventListener('keydown', onHelpModalKeydown)
 })
 onBeforeUnmount(() => {
   document.removeEventListener('click', closeLegendTooltipOnClickOutside)
+  document.removeEventListener('keydown', onHelpModalKeydown)
 })
 
 const selectedFactorData = computed(() =>
@@ -349,60 +360,100 @@ function getFactorShortDescription(factorId) {
   line-height: 1;
 }
 
-.help-panel {
-  padding: 14px 16px;
+/* How to use – modal (centered) */
+.help-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.5);
+  box-sizing: border-box;
 }
 
-.help-panel-header {
+.help-modal-dialog {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-width: 480px;
+  width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.help-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 10px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
-.help-panel h3 {
+.help-modal-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 600;
   color: #1f2937;
 }
 
-.help-panel-close {
+.help-modal-close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border: none;
-  border-radius: 6px;
-  background: transparent;
+  border-radius: 8px;
+  background: #f1f5f9;
   color: #64748b;
   cursor: pointer;
   transition: background 0.2s, color 0.2s;
   flex-shrink: 0;
 }
 
-.help-panel-close:hover {
+.help-modal-close:hover {
   background: #e2e8f0;
   color: #1f2937;
 }
 
-.help-workflow {
+.help-modal-workflow {
   margin: 0;
-  padding-left: 20px;
+  padding-left: 24px;
   color: #475569;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
 }
 
-.help-workflow li {
-  margin-bottom: 8px;
+.help-modal-workflow li {
+  margin-bottom: 10px;
 }
 
-.help-workflow li:last-child {
+.help-modal-workflow li:last-child {
   margin-bottom: 0;
+}
+
+.help-modal-enter-active,
+.help-modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.help-modal-enter-active .help-modal-dialog,
+.help-modal-leave-active .help-modal-dialog {
+  transition: transform 0.2s ease;
+}
+
+.help-modal-enter-from,
+.help-modal-leave-to {
+  opacity: 0;
+}
+
+.help-modal-enter-from .help-modal-dialog,
+.help-modal-leave-to .help-modal-dialog {
+  transform: scale(0.96);
 }
 
 .panel-header {
@@ -1031,13 +1082,6 @@ function getFactorShortDescription(factorId) {
 
 .range-controls input[type="range"] {
   flex: 1;
-}
-
-.help-panel ul {
-  margin: 0;
-  padding-left: 18px;
-  color: #475569;
-  font-size: 13px;
 }
 
 .select-wrapper {
