@@ -16,19 +16,11 @@
                 </div>
             </div>
             <div class="app-header__right">
-                <div class="app-header__prototype-wrap"
-                    @mouseenter="showPrototypeNotice = true" @mouseleave="showPrototypeNotice = false">
-                    <button type="button" class="app-header__info-tag" aria-label="Prototype notice"
-                        @focus="showPrototypeNotice = true" @blur="showPrototypeNotice = false">
-                        <span class="app-header__info-tag-dot" aria-hidden="true"></span>
-                        <span class="app-header__info-tag-text">PROTOTYPE</span>
-                        <svg class="app-header__info-tag-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4M12 8h.01"></path>
-                        </svg>
-                    </button>
-                    <div v-show="showPrototypeNotice" class="app-header__prototype-tooltip" role="tooltip">
-                        This is a prototype using a limited CHEL 2022 dataset. Rankings are based on percentiles within this dataset only. Additional data could change classifications. This tool is not intended for decision-making purposes.
+                <div class="app-header__badges">
+                    <div class="app-header__prototype-wrap">
+                        <button type="button" class="app-header__prototype-badge" aria-label="Prototype">
+                            <span class="app-header__prototype-text">PROTOTYPE</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -46,13 +38,29 @@
                 @toggle-overlay="overlayOn = $event" @pin-search="handlePinSearch"
                 @close-sidebar="sidebarOpen = false" @download="handleDownload" />
             <div class="map-wrapper">
-
                 <MapHexLayer v-if="dataObj" :data="dataObj" :style="style" :mapStyle="mapStyle"
                     :valueField="active.valueField" :breaks="active.breaks" :colors="active.colors" :center="mapCenter"
                     :zoom="mapZoom" :filter="layerFilter" :hoverHighlight="true" :zoomOnClick="true"
                     :zoomOnClickTarget="8" :statesUrl="statesGeoUrl" :showStateBorders="true"
                     :selectedHexIds="selectedHexIds" :selectedHexColor="'#1e4f86'" :selectedHexWidth="3"
                     :tooltipFields="tooltipFields" :tooltipLegendConfig="tooltipLegendConfig" :searchPinLocation="searchPinLocation" @hex-click="handleHexClick" />
+
+                <!-- Disclaimer button at bottom right of map (replaces map attribution) -->
+                <div class="map-disclaimer-wrap"
+                    @mouseenter="showDisclaimer = true" @mouseleave="showDisclaimer = false">
+                    <button type="button" class="map-disclaimer-btn" aria-label="Disclaimer"
+                        @click="showDisclaimer = !showDisclaimer"
+                        :aria-expanded="showDisclaimer">
+                        <svg class="map-disclaimer-btn__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4M12 8h.01"></path>
+                        </svg>
+                        <span class="map-disclaimer-btn__text">Disclaimer</span>
+                    </button>
+                    <div v-show="showDisclaimer" class="map-disclaimer-tooltip" role="tooltip">
+                        This is a prototype using a limited CHEL 2022 dataset. Rankings are based on percentiles within this dataset only. Additional data could change classifications. This tool is not intended for decision-making purposes.
+                    </div>
+                </div>
 
                 <!-- Right Sidebar for Hex Data -->
                 <HexDataSidebar v-if="selectedHexFeature" :feature="selectedHexFeature" :factors="factors"
@@ -97,7 +105,7 @@ const zipCache = new Map() // cache zip/address lookups
 const searchPinLocation = ref(null) // [lng, lat] for the searched location pin
 const selectedHexFeature = ref(null) // Feature data for the clicked hex
 const sidebarOpen = ref(false) // Mobile sidebar state
-const showPrototypeNotice = ref(false) // Tooltip for prototype info icon
+const showDisclaimer = ref(false) // Disclaimer tooltip (hover or click)
 
 function isNumeric(v) { return typeof v === 'number' && Number.isFinite(v) }
 
@@ -635,6 +643,43 @@ async function handlePinSearch(queryInput) {
     justify-self: end;
 }
 
+.app-header__badges {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-header__prototype-wrap {
+    position: relative;
+}
+
+.app-header__prototype-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #e5e7eb;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    cursor: default;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.app-header__prototype-badge:hover,
+.app-header__prototype-wrap:focus-within .app-header__prototype-badge {
+    border-color: #9ca3af;
+    background: #d1d5db;
+    color: #1f2937;
+}
+
+.app-header__prototype-text {
+    text-transform: uppercase;
+}
+
 .app-header__logo {
     display: flex;
     flex-direction: column;
@@ -695,69 +740,6 @@ async function handlePinSearch(queryInput) {
     color: #64748b;
 }
 
-.app-header__prototype-wrap {
-    position: relative;
-}
-
-.app-header__info-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 999px;
-    background: #f1f5f9;
-    color: #475569;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    cursor: default;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
-}
-
-.app-header__info-tag:hover,
-.app-header__prototype-wrap:focus-within .app-header__info-tag {
-    border-color: #94a3b8;
-    background: #e2e8f0;
-    color: #334155;
-}
-
-.app-header__info-tag-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #475569;
-    flex-shrink: 0;
-}
-
-.app-header__info-tag-icon {
-    flex-shrink: 0;
-    color: #64748b;
-}
-
-.app-header__prototype-tooltip {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    left: auto;
-    margin-top: 8px;
-    width: min(280px, calc(100vw - 32px));
-    max-width: 280px;
-    padding: 12px 14px;
-    font-size: 12px;
-    line-height: 1.5;
-    color: #334155;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-    z-index: 100;
-    pointer-events: none;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    hyphens: none;
-}
-
 .environmental-map-container {
     flex: 1;
     display: flex;
@@ -777,6 +759,62 @@ async function handlePinSearch(queryInput) {
     flex: 1;
     min-height: 0;
     width: 100%;
+}
+
+.map-disclaimer-wrap {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.map-disclaimer-tooltip {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 8px;
+    width: min(280px, calc(100vw - 32px));
+    max-width: 280px;
+    padding: 12px 14px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #334155;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    pointer-events: none;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: none;
+}
+
+.map-disclaimer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.92);
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.map-disclaimer-btn:hover {
+    border-color: #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+}
+
+.map-disclaimer-btn__icon {
+    flex-shrink: 0;
+    color: #94a3b8;
 }
 
 /* Mobile Menu Toggle Button */

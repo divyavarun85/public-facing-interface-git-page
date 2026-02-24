@@ -407,6 +407,7 @@ onMounted(() => {
     style: props.mapStyle,
     center: props.center,
     zoom: props.zoom,
+    attributionControl: false, // Replaced by custom Disclaimer button in parent
     // Performance optimizations
     antialias: false, // Disable antialiasing for better performance
     renderWorldCopies: false, // Don't render multiple world copies
