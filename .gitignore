@@ -26,3 +26,5 @@ dist-ssr
 # Storybook
 storybook-static
 
+# Build script inputs (large; download when needed)
+tmp/
