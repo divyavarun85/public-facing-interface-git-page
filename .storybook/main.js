@@ -10,29 +10,42 @@ export default {
   features: {
     buildStoriesJson: false,
   },
-  async viteFinal(config) {
+
+  // Note: Storybook passes a second arg with configType in recent versions.
+  async viteFinal(config, { configType } = {}) {
+    // ✅ GitHub Pages base path support (safe for Vercel + local)
+    // Only apply to production builds so local dev remains unaffected.
+    if (configType === 'PRODUCTION') {
+      const base = process.env.STORYBOOK_BASE_PATH || '/';
+      config.base = base;
+    }
+
+    // Your existing fix: prevent process.env access issues
     config.define = { ...(config.define ?? {}), 'process.env': {} };
-    
+
     // Fix maplibre-gl bundling issue - ensure it's included and not externalized
     config.optimizeDeps = {
       ...config.optimizeDeps,
       include: ['maplibre-gl', '@turf/turf', 'vue'],
       exclude: [],
     };
-    
+
     // Ensure maplibre-gl is bundled properly (not externalized)
     config.ssr = config.ssr || {};
     if (config.ssr.noExternal === undefined) {
       config.ssr.noExternal = [];
     }
     if (Array.isArray(config.ssr.noExternal)) {
-      config.ssr.noExternal.push('maplibre-gl');
+      // avoid duplicates if viteFinal runs more than once
+      if (!config.ssr.noExternal.includes('maplibre-gl')) {
+        config.ssr.noExternal.push('maplibre-gl');
+      }
     }
-    
+
     // Explicitly prevent maplibre-gl from being externalized in build
     config.build = config.build || {};
     config.build.rollupOptions = config.build.rollupOptions || {};
-    
+
     // Override external to never externalize maplibre-gl
     const originalExternal = config.build.rollupOptions.external;
     config.build.rollupOptions.external = (id) => {
@@ -51,7 +64,7 @@ export default {
       }
       return false;
     };
-    
+
     return config;
   },
 };
