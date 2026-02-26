@@ -19,7 +19,7 @@ export default {
 
 export const Default = {
   args: {
-    data: '/chel2022_wgs84.geojson',  // CHEL 2022 GeoJSON (E_PM, EPL_PM, E_OZONE, EPL_OZONE, EP_ASTHMA, SPL_SVM, E_TOTPOP)
+    data: 'chel2022_wgs84.geojson',  // relative path - resolves against current page (works on GitHub Pages subpath)
     initialFactorId: '',  // No default selection - user must choose a variable
     center: [-98.6, 39.8],
     zoom: 3.4,
